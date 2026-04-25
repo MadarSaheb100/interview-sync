@@ -1,0 +1,492 @@
+{
+  "name": "InterviewSync - Complete Workflow (Happy Path + All Edge Cases)",
+  "nodes": [
+
+    {
+      "id": "n1",
+      "name": "Webhook - Start Super Day",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "super-day",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n2",
+      "name": "Set - Super Day Inputs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [240, 300],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "candidates",   "value": "={{ $json.body.candidates }}",   "type": "array"  },
+            { "id": "a2", "name": "interviewers", "value": "={{ $json.body.interviewers }}", "type": "array"  },
+            { "id": "a3", "name": "rooms",        "value": "={{ $json.body.rooms }}",        "type": "array"  },
+            { "id": "a4", "name": "superDayDate", "value": "={{ $json.body.superDayDate }}", "type": "string" }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n3",
+      "name": "Code - Generate Schedule",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var input = $input.first().json;\nvar candidates   = input.candidates   || [];\nvar interviewers = input.interviewers || [];\nvar rooms        = input.rooms        || [];\nvar superDayDate = input.superDayDate || new Date().toISOString().split('T')[0];\nvar DURATION = 45;\nvar ROUNDS = [\n  { name: 'Technical/Domain', startTime: '10:00' },\n  { name: 'Cross-Functional', startTime: '11:45' },\n  { name: 'Culture Fit',      startTime: '13:30' }\n];\nfunction toMins(t) { var p=t.split(':').map(Number); return p[0]*60+p[1]; }\nfunction fromMins(m) { return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }\nfunction addMins(t,m) { return fromMins(toMins(t)+m); }\nfunction conflictsWithBlocks(s,e,blocks) {\n  for (var i=0;i<(blocks||[]).length;i++) { if (toMins(s)<toMins(blocks[i].end)&&toMins(e)>toMins(blocks[i].start)) return true; }\n  return false;\n}\nfunction exceedsHardStop(e,h) { return h && toMins(e)>toMins(h); }\nvar usedIv={}; var usedRoom={};\nfunction findIv(candidate,round,allIv) {\n  var s=round.startTime; var e=addMins(s,DURATION);\n  if (!usedIv[s]) usedIv[s]={};\n  var senRank=['VP','Chief','Director','Lead','Senior','Manager','Architect','Partner'];\n  var eligible=allIv.filter(function(iv){\n    if (usedIv[s][iv.id]) return false;\n    if (iv.availableFrom&&toMins(s)<toMins(iv.availableFrom)) return false;\n    if (iv.availableTill&&toMins(e)>toMins(iv.availableTill)) return false;\n    return true;\n  }).sort(function(a,b){\n    var dept=candidate.role||'';\n    if (round.name==='Technical/Domain') {\n      return ((a.department||'').toLowerCase()===dept.toLowerCase()?0:1)-((b.department||'').toLowerCase()===dept.toLowerCase()?0:1);\n    } else if (round.name==='Cross-Functional') {\n      return ((a.department||'').toLowerCase()!==dept.toLowerCase()?0:1)-((b.department||'').toLowerCase()!==dept.toLowerCase()?0:1);\n    } else {\n      var as=senRank.findIndex(function(s){return(a.title||'').includes(s);});\n      var bs=senRank.findIndex(function(s){return(b.title||'').includes(s);});\n      return (as<0?99:as)-(bs<0?99:bs);\n    }\n  });\n  if (!eligible.length) return null;\n  usedIv[s][eligible[0].id]=true;\n  return eligible[0];\n}\nfunction findRoom(s,allRooms) {\n  if (!usedRoom[s]) usedRoom[s]={};\n  for (var i=0;i<allRooms.length;i++) { var rid=allRooms[i].id||allRooms[i].name||allRooms[i]; if (!usedRoom[s][rid]){usedRoom[s][rid]=true;return allRooms[i];} }\n  return null;\n}\nvar schedule=[], warnings=[];\ncandidates.forEach(function(candidate,ci){\n  ROUNDS.forEach(function(round,ri){\n    var s=round.startTime; var e=addMins(s,DURATION);\n    if (conflictsWithBlocks(s,e,candidate.hardBlocks)) { warnings.push('EC-BLOCK: '+candidate.name+' hard block during '+round.name+' ('+s+'). Skipped.'); return; }\n    if (exceedsHardStop(e,candidate.hardStop)) { warnings.push('EC-HARDSTOP: '+candidate.name+' hard stop '+candidate.hardStop+' — '+round.name+' ends '+e+'. Skipped.'); return; }\n    var iv=findIv(candidate,round,interviewers);\n    if (!iv) { warnings.push('EC-NO-IV: No interviewer for '+candidate.name+' in '+round.name+' at '+s+'.'); return; }\n    var room=findRoom(s,rooms);\n    if (!room) { warnings.push('EC-NO-ROOM: No room for '+candidate.name+' in '+round.name+' at '+s+'.'); return; }\n    var backToBackNote=null;\n    if ((candidate.preferences||[]).includes('back-to-back')) {\n      var prev=schedule.filter(function(sl){return sl.candidateId===candidate.id;}).slice(-1)[0];\n      if (prev&&toMins(s)-toMins(prev.endTime)>20) { backToBackNote='NOTE: '+candidate.name+' prefers back-to-back. Gap is '+(toMins(s)-toMins(prev.endTime))+' min.'; warnings.push(backToBackNote); }\n    }\n    var matchReason=round.name==='Technical/Domain'?'Matched on '+(iv.department||'domain')+' expertise':round.name==='Cross-Functional'?'Cross-functional pairing':'Senior evaluator for culture fit';\n    schedule.push({ slotId:'SLOT-C'+(ci+1)+'-R'+(ri+1), candidateId:candidate.id||'C'+(ci+1), candidateName:candidate.name||'Candidate '+(ci+1), role:candidate.role||'Unknown', round:ri+1, roundName:round.name, interviewerId:iv.id, interviewerName:iv.name, interviewerDept:iv.department||'', interviewerTitle:iv.title||'', matchReason:matchReason, room:room.name||room.id||room, date:superDayDate, startTime:s, endTime:e, durationMinutes:DURATION, status:'scheduled' });\n  });\n});\nreturn [{ json: { schedule:schedule, totalSlots:schedule.length, warnings:warnings, generatedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n4",
+      "name": "Code - Validate Constraints",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var data=$input.first().json; var schedule=data.schedule||[]; var errors=[]; var warnings=(data.warnings||[]).slice();\nif (schedule.length===0) errors.push('CRITICAL: Schedule is empty.');\nvar ivMap={}; schedule.forEach(function(s){ var k=s.interviewerId+'_'+s.startTime; if(ivMap[k]) errors.push('DOUBLE-BOOKING: '+s.interviewerName+' at '+s.startTime); ivMap[k]=true; });\nvar rmMap={}; schedule.forEach(function(s){ var k=s.room+'_'+s.startTime; if(rmMap[k]) errors.push('ROOM-CONFLICT: '+s.room+' at '+s.startTime); rmMap[k]=true; });\nvar cRounds={}; schedule.forEach(function(s){ if(!cRounds[s.candidateId]) cRounds[s.candidateId]=[]; cRounds[s.candidateId].push(s.round); });\nObject.keys(cRounds).forEach(function(cId){ if(cRounds[cId].length<3){ var n=(schedule.find(function(s){return s.candidateId===cId;})||{}).candidateName||cId; warnings.push('PARTIAL: '+n+' has '+cRounds[cId].length+'/3 rounds (constraint-driven).'); } });\nschedule.forEach(function(s){ if(!s.interviewerName) errors.push('NO-IV: Slot '+s.slotId+' missing interviewer.'); if(!s.room) errors.push('NO-ROOM: Slot '+s.slotId+' missing room.'); });\nreturn [{ json: { schedule:data.schedule, totalSlots:data.totalSlots, generatedAt:data.generatedAt, isValid:errors.length===0, validationErrors:errors, validationWarnings:warnings, validatedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n5",
+      "name": "IF - Is Schedule Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond1", "leftValue": "={{ $json.isValid }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n6",
+      "name": "Code - Prepare Notifications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 160],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var data=$input.first().json; var schedule=data.schedule||[]; var notifMap={};\nschedule.forEach(function(slot){\n  if (!notifMap[slot.candidateId]) notifMap[slot.candidateId]={ recipientType:'candidate', recipientId:slot.candidateId, name:slot.candidateName, role:slot.role, subject:'Your Super Day Schedule — '+slot.date, message:'Hi '+slot.candidateName+', your interview schedule for Super Day '+slot.date+' is confirmed.', slots:[] };\n  notifMap[slot.candidateId].slots.push({ round:slot.roundName, time:slot.startTime+' – '+slot.endTime, room:slot.room, interviewer:slot.interviewerName, matchReason:slot.matchReason });\n  var ivKey='IV_'+slot.interviewerId;\n  if (!notifMap[ivKey]) notifMap[ivKey]={ recipientType:'interviewer', recipientId:slot.interviewerId, name:slot.interviewerName, department:slot.interviewerDept, title:slot.interviewerTitle, subject:'Panel Assignments — Super Day '+slot.date, message:'Hi '+slot.interviewerName+', you have panel assignments for Super Day '+slot.date+'.', slots:[] };\n  notifMap[ivKey].slots.push({ candidate:slot.candidateName, role:slot.role, round:slot.roundName, time:slot.startTime+' – '+slot.endTime, room:slot.room });\n});\nvar notifications=Object.values(notifMap);\nvar cSet={}; var ivSet={}; var rSet={};\nschedule.forEach(function(s){ cSet[s.candidateId]=true; ivSet[s.interviewerId]=true; rSet[s.room]=true; });\nvar aditiSummary={ recipientType:'hr_lead', name:'Aditi', subject:'Super Day Schedule Ready — Review & Approve', message:'Your Super Day schedule has been generated. Please review and approve.', totalCandidates:Object.keys(cSet).length, totalInterviewers:Object.keys(ivSet).length, totalRooms:Object.keys(rSet).length, totalSlots:schedule.length, warnings:data.validationWarnings||[], approvalRequired:true };\nreturn [{ json: { schedule:data.schedule, totalSlots:data.totalSlots, notifications:notifications, totalNotifications:notifications.length, aditiSummary:aditiSummary, generatedAt:data.generatedAt, validatedAt:data.validatedAt } }];"
+      }
+    },
+
+    {
+      "id": "n7",
+      "name": "HTTP - Send Notifications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1440, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }, { "name": "X-Source", "value": "InterviewSync-HappyPath" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { notifications: $json.notifications, aditiSummary: $json.aditiSummary, schedule: $json.schedule } }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+
+    {
+      "id": "n8",
+      "name": "Respond - Return Schedule",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1680, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Super Day schedule generated and notifications sent.', schedule: $node[\"Code - Prepare Notifications\"].json.schedule, totalSlots: $node[\"Code - Prepare Notifications\"].json.totalSlots, totalNotifications: $node[\"Code - Prepare Notifications\"].json.totalNotifications, aditiSummary: $node[\"Code - Prepare Notifications\"].json.aditiSummary, generatedAt: $node[\"Code - Prepare Notifications\"].json.generatedAt, validatedAt: $node[\"Code - Prepare Notifications\"].json.validatedAt } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "n9",
+      "name": "Set - Conflict Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1200, 440],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "b1", "name": "success",            "value": false,                             "type": "boolean" },
+            { "id": "b2", "name": "error",              "value": "Schedule validation failed",      "type": "string"  },
+            { "id": "b3", "name": "validationErrors",   "value": "={{ $json.validationErrors }}",   "type": "array"   },
+            { "id": "b4", "name": "validationWarnings", "value": "={{ $json.validationWarnings }}", "type": "array"   },
+            { "id": "b5", "name": "partialSchedule",    "value": "={{ $json.schedule }}",           "type": "array"   },
+            { "id": "b6", "name": "failedAt",           "value": "={{ new Date().toISOString() }}", "type": "string"  }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n10",
+      "name": "Respond - Return Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1440, 440],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error, validationErrors: $json.validationErrors, validationWarnings: $json.validationWarnings, partialSchedule: $json.partialSchedule, failedAt: $json.failedAt } }}",
+        "options": { "responseCode": 422 }
+      }
+    },
+
+    {
+      "id": "n11",
+      "name": "Webhook - Report Disruption",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 700],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "report-disruption",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n12",
+      "name": "Code - Classify Disruption",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 700],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var body=$json.body||{};\nvar VALID=['interviewer_cancelled','candidate_late','candidate_noshow','room_unavailable'];\nvar PRIORITY={interviewer_cancelled:1,room_unavailable:2,candidate_late:3,candidate_noshow:4};\nvar dtype=body.disruptionType||'';\nvar affId=body.affectedId||null;\nvar affName=body.affectedName||'Unknown';\nvar curSched=body.currentSchedule||[];\nvar reportedAt=body.reportedAt||new Date().toISOString();\nvar notes=body.notes||'';\nvar lateMins=body.lateByMinutes||0;\nif (!VALID.includes(dtype)) return [{ json:{ valid:false, error:'Invalid disruption type: '+dtype+'. Valid: '+VALID.join(', '), disruptionType:dtype } }];\nif (!affId) return [{ json:{ valid:false, error:'affectedId is required', disruptionType:dtype } }];\nif (curSched.length===0) return [{ json:{ valid:false, error:'currentSchedule is empty — cannot replan', disruptionType:dtype } }];\nreturn [{ json:{ valid:true, disruptionType:dtype, disruptionPriority:PRIORITY[dtype], affectedId:affId, affectedName:affName, lateByMinutes:lateMins, notes:notes, reportedAt:reportedAt, currentSchedule:curSched } }];"
+      }
+    },
+
+    {
+      "id": "n13",
+      "name": "IF - Valid Disruption",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 700],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond2", "leftValue": "={{ $json.valid }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n14",
+      "name": "Switch - Disruption Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 700],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.disruptionType }}", "rightValue": "interviewer_cancelled", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "Interviewer Cancelled" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.disruptionType }}", "rightValue": "candidate_late",        "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "Candidate Late" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.disruptionType }}", "rightValue": "candidate_noshow",     "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "Candidate No-Show" },
+            { "conditions": { "conditions": [{ "leftValue": "={{ $json.disruptionType }}", "rightValue": "room_unavailable",     "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" }, "renameOutput": true, "outputKey": "Room Unavailable" }
+          ]
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n15",
+      "name": "Code - Handle Interviewer Cancelled",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 560],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var d=$json;\nvar schedule=(d.currentSchedule||[]).map(function(s){return Object.assign({},s);});\nvar cancelledId=d.affectedId; var cancelledName=d.affectedName;\nvar BACKUPS=[\n  {id:'I8', name:'Ananya Iyer',   title:'Engineering Manager', department:'Backend Engineer',availableFrom:'10:00',availableTill:'17:00'},\n  {id:'I10',name:'Amit Saharan',  title:'Backend Architect',   department:'Backend Engineer',availableFrom:'14:00',availableTill:'17:00'},\n  {id:'I9', name:'Suresh Babu',   title:'Product Director',    department:'Product Designer',availableFrom:'10:00',availableTill:'17:00'},\n  {id:'I11',name:'Lakshmi Reddy', title:'HR Business Partner', department:'Human Resources', availableFrom:'10:00',availableTill:'17:00'},\n  {id:'I12',name:'Vikram Nambiar',title:'Chief of Staff',      department:'Leadership',      availableFrom:'10:00',availableTill:'17:00'}\n];\nfunction toMins(t){var p=t.split(':').map(Number);return p[0]*60+p[1];}\nfunction addMins(t,m){var tot=toMins(t)+m;return String(Math.floor(tot/60)).padStart(2,'0')+':'+String(tot%60).padStart(2,'0');}\nvar senRank=['VP','Chief','Director','Lead','Senior','Manager','Architect','Partner'];\nfunction senScore(t){for(var i=0;i<senRank.length;i++){if((t||'').includes(senRank[i]))return i;}return 99;}\nvar used={}; schedule.forEach(function(s){if(!used[s.startTime])used[s.startTime]={};used[s.startTime][s.interviewerId]=true;});\nvar affected=schedule.filter(function(s){return s.interviewerId===cancelledId||s.interviewerName===cancelledName;});\nvar swaps=[],escalations=[],senWarn=[];\naffected.forEach(function(slot){\n  var st=slot.startTime; var et=addMins(st,slot.durationMinutes||45);\n  if(!used[st])used[st]={};\n  var cands=BACKUPS.filter(function(iv){\n    if(iv.id===cancelledId) return false;\n    if(used[st]&&used[st][iv.id]) return false;\n    if(toMins(st)<toMins(iv.availableFrom)) return false;\n    if(toMins(et)>toMins(iv.availableTill)) return false;\n    return true;\n  }).sort(function(a,b){\n    var dm=function(iv){return(iv.department||'').toLowerCase()===(slot.interviewerDept||'').toLowerCase()?0:1;};\n    return dm(a)-dm(b)||senScore(a.title)-senScore(b.title);\n  });\n  if (!cands.length){escalations.push({slotId:slot.slotId,candidateName:slot.candidateName,round:slot.roundName,time:st+' – '+et,reason:'No backup available',action:'ESCALATE_TO_ADITI'});slot.status='unresolved';slot.escalated=true;return;}\n  var bk=cands[0]; used[st][bk.id]=true;\n  var lower=senScore(bk.title)>senScore(slot.interviewerTitle);\n  if(lower) senWarn.push('SENIORITY-WARN: '+bk.name+' ('+bk.title+') replacing '+cancelledName+' ('+slot.interviewerTitle+') for '+slot.candidateName+' '+slot.roundName+'. Aditi approval needed.');\n  slot.interviewerId=bk.id; slot.interviewerName=bk.name; slot.interviewerDept=bk.department; slot.interviewerTitle=bk.title;\n  slot.matchReason='Backup for cancelled '+cancelledName; slot.seniorityFlag=lower?'Lower seniority — approval needed':null; slot.status='rescheduled';\n  swaps.push({slotId:slot.slotId,candidateName:slot.candidateName,round:slot.roundName,time:st+' – '+et,originalIv:cancelledName,newIv:bk.name,newIvTitle:bk.title,seniorityLower:lower,room:slot.room});\n});\nreturn [{ json:{ updatedSchedule:schedule, disruptionType:'interviewer_cancelled', cancelledInterviewer:cancelledName, affectedSlotsCount:affected.length, swapsExecuted:swaps, escalations:escalations, seniorityWarnings:senWarn, requiresAditiApproval:senWarn.length>0||escalations.length>0, resolvedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n16",
+      "name": "Code - Handle Candidate Late",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 700],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var d=$json;\nvar schedule=(d.currentSchedule||[]).map(function(s){return Object.assign({},s);});\nvar candId=d.affectedId; var candName=d.affectedName; var lateMins=d.lateByMinutes||30;\nfunction toMins(t){var p=t.split(':').map(Number);return p[0]*60+p[1];}\nfunction fromMins(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}\nfunction addMins(t,m){return fromMins(toMins(t)+m);}\nvar RDUR=45; var MINGAP=10;\nvar cSlots=schedule.filter(function(s){return s.candidateId===candId||s.candidateName===candName;}).sort(function(a,b){return toMins(a.startTime)-toMins(b.startTime);});\nif(!cSlots.length) return [{ json:{ error:'Candidate '+candName+' not in schedule', disruptionType:'candidate_late' } }];\nvar hardStop=cSlots[0].hardStop||null;\nvar cursor=toMins(cSlots[0].startTime)+lateMins;\nvar newTimes=cSlots.map(function(){\n  var t={start:cursor,end:cursor+RDUR}; cursor=cursor+RDUR+MINGAP; return t;\n});\nvar canFit=!hardStop||newTimes[newTimes.length-1].end<=toMins(hardStop);\nvar warns=[];\nif(canFit){\n  cSlots.forEach(function(slot,i){\n    var g=schedule.find(function(s){return s.slotId===slot.slotId;});\n    if(g){g.startTime=fromMins(newTimes[i].start);g.endTime=fromMins(newTimes[i].end);g.status='rescheduled';g.lateNote='Shifted '+lateMins+' min. Gap compressed to '+MINGAP+' min.';}\n  });\n  warns.push(candName+' arrived '+lateMins+' min late. All '+cSlots.length+' rounds preserved with compressed gaps.');\n} else {\n  var done=0;\n  cSlots.forEach(function(slot,i){\n    var g=schedule.find(function(s){return s.slotId===slot.slotId;});\n    if(g&&(!hardStop||newTimes[i].end<=toMins(hardStop))){g.startTime=fromMins(newTimes[i].start);g.endTime=fromMins(newTimes[i].end);g.status='rescheduled';done++;}\n    else if(g){g.status='dropped_hardstop';g.dropNote='Exceeds hard stop '+hardStop;}\n  });\n  warns.push('ALERT: '+candName+' can only complete '+done+'/'+cSlots.length+' rounds before hard stop '+hardStop+'. Aditi alerted.');\n}\nreturn [{ json:{ updatedSchedule:schedule, disruptionType:'candidate_late', candidateName:candName, lateByMinutes:lateMins, allRoundsFit:canFit, gapCompressedTo:MINGAP, warnings:warns, requiresAditiApproval:!canFit, resolvedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n17",
+      "name": "Code - Handle No-Show",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 840],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var d=$json;\nvar schedule=(d.currentSchedule||[]).map(function(s){return Object.assign({},s);});\nvar candId=d.affectedId; var candName=d.affectedName;\nvar affected=[]; var freedIv=[];\nschedule.forEach(function(slot){\n  if(slot.candidateId===candId||slot.candidateName===candName){\n    slot.status='vacant_no_show'; slot.dropNote=candName+' did not show. Slot freed.';\n    affected.push(slot);\n    if(!freedIv.find(function(iv){return iv.id===slot.interviewerId;})){\n      freedIv.push({id:slot.interviewerId,name:slot.interviewerName,slots:[slot.startTime+' – '+slot.endTime+' ('+slot.roundName+')']});\n    } else {\n      freedIv.find(function(iv){return iv.id===slot.interviewerId;}).slots.push(slot.startTime+' – '+slot.endTime+' ('+slot.roundName+')');\n    }\n  }\n});\nreturn [{ json:{ updatedSchedule:schedule, disruptionType:'candidate_noshow', candidateName:candName, affectedSlotsCount:affected.length, freedInterviewers:freedIv, aditiAlert:'Candidate '+candName+' did not show. '+affected.length+' slots vacant. '+freedIv.length+' interviewers freed.', requiresAditiApproval:true, resolvedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n18",
+      "name": "Code - Handle Room Unavailable",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 980],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var d=$json;\nvar schedule=(d.currentSchedule||[]).map(function(s){return Object.assign({},s);});\nvar roomName=d.affectedName||d.affectedId;\nfunction toMins(t){var p=t.split(':').map(Number);return p[0]*60+p[1];}\nfunction fromMins(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}\nfunction addMins(t,m){return fromMins(toMins(t)+m);}\nvar allRooms=[]; schedule.forEach(function(s){if(!allRooms.includes(s.room))allRooms.push(s.room);});\nvar roomUsage={}; schedule.forEach(function(s){if(!roomUsage[s.startTime])roomUsage[s.startTime]={};roomUsage[s.startTime][s.room]=s.slotId;});\nvar affected=schedule.filter(function(s){return s.room===roomName;});\nvar swaps=[],staggered=[],escalations=[];\naffected.forEach(function(slot){\n  var st=slot.startTime;\n  var freeRoom=allRooms.find(function(r){return r!==roomName&&(!roomUsage[st]||!roomUsage[st][r]);});\n  if(freeRoom){\n    if(!roomUsage[st])roomUsage[st]={};\n    roomUsage[st][freeRoom]=slot.slotId;\n    slot.room=freeRoom; slot.status='room_moved'; slot.roomNote='Moved from '+roomName+' to '+freeRoom+' (same time).';\n    swaps.push({slotId:slot.slotId,candidateName:slot.candidateName,from:roomName,to:freeRoom,time:st});\n  } else {\n    var newSt=addMins(st,15); var newEt=addMins(slot.endTime,15);\n    var hardOk=!slot.hardStop||toMins(newEt)<=toMins(slot.hardStop);\n    var freeRoomStag=allRooms.find(function(r){return r!==roomName&&(!roomUsage[newSt]||!roomUsage[newSt][r]);});\n    if(!hardOk||!freeRoomStag){\n      escalations.push({slotId:slot.slotId,candidateName:slot.candidateName,round:slot.roundName,time:st,reason:!hardOk?'Stagger exceeds hard stop':'No room after stagger',action:'ESCALATE_TO_ADITI'});\n      slot.status='unresolved'; slot.escalated=true;\n    } else {\n      if(!roomUsage[newSt])roomUsage[newSt]={};\n      roomUsage[newSt][freeRoomStag]=slot.slotId;\n      slot.startTime=newSt; slot.endTime=newEt; slot.room=freeRoomStag; slot.status='room_staggered';\n      slot.roomNote='Staggered 15 min to '+newSt+' in '+freeRoomStag+' ('+roomName+' unavailable).';\n      staggered.push({slotId:slot.slotId,candidateName:slot.candidateName,from:roomName,to:freeRoomStag,newTime:newSt});\n    }\n  }\n});\nreturn [{ json:{ updatedSchedule:schedule, disruptionType:'room_unavailable', unavailableRoom:roomName, affectedSlotsCount:affected.length, roomSwaps:swaps, staggeredSlots:staggered, escalations:escalations, requiresAditiApproval:escalations.length>0, resolvedAt:new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n19",
+      "name": "Code - Merge Disruption Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 760],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "var d=$json;\nvar summary=[];\nif(d.disruptionType==='interviewer_cancelled'){\n  summary.push('Interviewer '+d.cancelledInterviewer+' cancelled.');\n  summary.push((d.swapsExecuted||[]).length+' slot(s) reassigned to backup.');\n  if((d.escalations||[]).length>0) summary.push(d.escalations.length+' slot(s) could not be resolved — manual intervention needed.');\n  if((d.seniorityWarnings||[]).length>0) summary.push('Seniority mismatch — Aditi approval required.');\n} else if(d.disruptionType==='candidate_late'){\n  summary.push('Candidate '+d.candidateName+' is '+d.lateByMinutes+' min late.');\n  summary.push(d.allRoundsFit?'All rounds rescheduled with '+d.gapCompressedTo+' min gaps.':'Cannot fit all rounds — Aditi alerted.');\n} else if(d.disruptionType==='candidate_noshow'){\n  summary.push('Candidate '+d.candidateName+' no-show.');\n  summary.push(d.affectedSlotsCount+' slot(s) vacant. '+(d.freedInterviewers||[]).length+' interviewer(s) freed.');\n} else if(d.disruptionType==='room_unavailable'){\n  summary.push('Room '+d.unavailableRoom+' unavailable.');\n  summary.push((d.roomSwaps||[]).length+' slot(s) moved to alternate rooms.');\n  summary.push((d.staggeredSlots||[]).length+' slot(s) staggered by 15 min.');\n  if((d.escalations||[]).length>0) summary.push(d.escalations.length+' slot(s) escalated.');\n}\nreturn [{ json:{ updatedSchedule:d.updatedSchedule, disruptionType:d.disruptionType, summary:summary, requiresAditiApproval:d.requiresAditiApproval||false, escalations:d.escalations||[], seniorityWarnings:d.seniorityWarnings||[], warnings:d.warnings||[], resolvedAt:d.resolvedAt||new Date().toISOString() } }];"
+      }
+    },
+
+    {
+      "id": "n20",
+      "name": "IF - Needs Aditi Approval",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1440, 760],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "cond3", "leftValue": "={{ $json.requiresAditiApproval }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "n21",
+      "name": "HTTP - Escalate to Aditi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1680, 660],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/escalate",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }, { "name": "X-Source", "value": "InterviewSync-Escalation" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { type: 'aditi_approval_required', disruptionType: $json.disruptionType, summary: $json.summary, escalations: $json.escalations, seniorityWarnings: $json.seniorityWarnings, updatedSchedule: $json.updatedSchedule, resolvedAt: $json.resolvedAt } }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+
+    {
+      "id": "n22",
+      "name": "HTTP - Send Disruption Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1680, 860],
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }, { "name": "X-Source", "value": "InterviewSync-Disruption" }] },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { type: 'disruption_resolved', disruptionType: $json.disruptionType, summary: $json.summary, updatedSchedule: $json.updatedSchedule, warnings: $json.warnings, resolvedAt: $json.resolvedAt } }}",
+        "options": { "response": { "response": { "neverError": true } } }
+      }
+    },
+
+    {
+      "id": "n23",
+      "name": "Respond - Escalated to Aditi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 660],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Disruption partially handled. Escalated to Aditi for approval.', disruptionType: $json.disruptionType, summary: $json.summary, escalations: $json.escalations, seniorityWarnings: $json.seniorityWarnings, updatedSchedule: $json.updatedSchedule, resolvedAt: $json.resolvedAt } }}",
+        "options": { "responseCode": 202 }
+      }
+    },
+
+    {
+      "id": "n24",
+      "name": "Respond - Disruption Resolved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1920, 860],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Disruption handled and notifications sent.', disruptionType: $json.disruptionType, summary: $json.summary, updatedSchedule: $json.updatedSchedule, warnings: $json.warnings, resolvedAt: $json.resolvedAt } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "n25",
+      "name": "Respond - Invalid Disruption",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, 860],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: $json.error, disruptionType: $json.disruptionType } }}",
+        "options": { "responseCode": 400 }
+      }
+    }
+
+  ],
+
+  "connections": {
+    "Webhook - Start Super Day":         { "main": [[{ "node": "Set - Super Day Inputs",       "type": "main", "index": 0 }]] },
+    "Set - Super Day Inputs":            { "main": [[{ "node": "Code - Generate Schedule",      "type": "main", "index": 0 }]] },
+    "Code - Generate Schedule":          { "main": [[{ "node": "Code - Validate Constraints",   "type": "main", "index": 0 }]] },
+    "Code - Validate Constraints":       { "main": [[{ "node": "IF - Is Schedule Valid",        "type": "main", "index": 0 }]] },
+    "IF - Is Schedule Valid": {
+      "main": [
+        [{ "node": "Code - Prepare Notifications", "type": "main", "index": 0 }],
+        [{ "node": "Set - Conflict Response",      "type": "main", "index": 0 }]
+      ]
+    },
+    "Code - Prepare Notifications":      { "main": [[{ "node": "HTTP - Send Notifications",     "type": "main", "index": 0 }]] },
+    "HTTP - Send Notifications":         { "main": [[{ "node": "Respond - Return Schedule",     "type": "main", "index": 0 }]] },
+    "Set - Conflict Response":           { "main": [[{ "node": "Respond - Return Error",        "type": "main", "index": 0 }]] },
+
+    "Webhook - Report Disruption":       { "main": [[{ "node": "Code - Classify Disruption",   "type": "main", "index": 0 }]] },
+    "Code - Classify Disruption":        { "main": [[{ "node": "IF - Valid Disruption",        "type": "main", "index": 0 }]] },
+    "IF - Valid Disruption": {
+      "main": [
+        [{ "node": "Switch - Disruption Type",    "type": "main", "index": 0 }],
+        [{ "node": "Respond - Invalid Disruption","type": "main", "index": 0 }]
+      ]
+    },
+    "Switch - Disruption Type": {
+      "main": [
+        [{ "node": "Code - Handle Interviewer Cancelled", "type": "main", "index": 0 }],
+        [{ "node": "Code - Handle Candidate Late",        "type": "main", "index": 0 }],
+        [{ "node": "Code - Handle No-Show",               "type": "main", "index": 0 }],
+        [{ "node": "Code - Handle Room Unavailable",      "type": "main", "index": 0 }]
+      ]
+    },
+    "Code - Handle Interviewer Cancelled": { "main": [[{ "node": "Code - Merge Disruption Result", "type": "main", "index": 0 }]] },
+    "Code - Handle Candidate Late":        { "main": [[{ "node": "Code - Merge Disruption Result", "type": "main", "index": 0 }]] },
+    "Code - Handle No-Show":               { "main": [[{ "node": "Code - Merge Disruption Result", "type": "main", "index": 0 }]] },
+    "Code - Handle Room Unavailable":      { "main": [[{ "node": "Code - Merge Disruption Result", "type": "main", "index": 0 }]] },
+    "Code - Merge Disruption Result":      { "main": [[{ "node": "IF - Needs Aditi Approval",      "type": "main", "index": 0 }]] },
+    "IF - Needs Aditi Approval": {
+      "main": [
+        [{ "node": "HTTP - Escalate to Aditi",          "type": "main", "index": 0 }],
+        [{ "node": "HTTP - Send Disruption Notification","type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP - Escalate to Aditi":           { "main": [[{ "node": "Respond - Escalated to Aditi",  "type": "main", "index": 0 }]] },
+    "HTTP - Send Disruption Notification":{ "main": [[{ "node": "Respond - Disruption Resolved",  "type": "main", "index": 0 }]] }
+  },
+
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+
+  "pinData": {
+    "Webhook - Start Super Day": [{
+      "json": {
+        "body": {
+          "superDayDate": "2026-03-29",
+          "candidates": [
+            { "id":"C1","name":"Priya Sharma", "role":"Backend Engineer", "hardBlocks":[{"start":"13:00","end":"13:30"}],"hardStop":null,   "preferences":[] },
+            { "id":"C2","name":"Arjun Mehta",  "role":"Backend Engineer", "hardBlocks":[],"hardStop":null,    "preferences":[] },
+            { "id":"C3","name":"Sneha Iyer",   "role":"Product Designer", "hardBlocks":[],"hardStop":"15:30", "preferences":[] },
+            { "id":"C4","name":"Rohan Das",    "role":"Product Designer", "hardBlocks":[],"hardStop":null,    "preferences":[] },
+            { "id":"C5","name":"Kavya Nair",   "role":"Data Analyst",     "hardBlocks":[],"hardStop":null,    "preferences":["back-to-back"] },
+            { "id":"C6","name":"Amir Khan",    "role":"Data Analyst",     "hardBlocks":[],"hardStop":null,    "preferences":[] },
+            { "id":"C7","name":"Tanya Gupta",  "role":"Backend Engineer", "hardBlocks":[],"hardStop":null,    "preferences":[] },
+            { "id":"C8","name":"Vikram Joshi", "role":"Product Designer", "hardBlocks":[],"hardStop":"15:00", "preferences":[] }
+          ],
+          "interviewers": [
+            { "id":"I1", "name":"Rahul Verma",    "title":"VP Engineering",       "department":"Backend Engineer","availableFrom":"10:00","availableTill":"14:00" },
+            { "id":"I2", "name":"Preethi Nair",   "title":"Senior PM",            "department":"Product Designer","availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I3", "name":"Siddharth Rao",  "title":"Tech Lead",            "department":"Backend Engineer","availableFrom":"11:00","availableTill":"17:00" },
+            { "id":"I4", "name":"Meena Krishnan", "title":"Senior Designer",      "department":"Product Designer","availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I5", "name":"Karan Mehta",    "title":"Senior Designer",      "department":"Product Designer","availableFrom":"10:00","availableTill":"15:30" },
+            { "id":"I6", "name":"Divya Sharma",   "title":"Data Science Lead",    "department":"Data Analyst",    "availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I7", "name":"Rohan Pillai",   "title":"Senior Data Analyst",  "department":"Data Analyst",    "availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I8", "name":"Ananya Iyer",    "title":"Engineering Manager",  "department":"Backend Engineer","availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I9", "name":"Suresh Babu",    "title":"Product Director",     "department":"Product Designer","availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I10","name":"Amit Saharan",   "title":"Backend Architect",    "department":"Backend Engineer","availableFrom":"14:00","availableTill":"17:00" },
+            { "id":"I11","name":"Lakshmi Reddy",  "title":"HR Business Partner",  "department":"Human Resources", "availableFrom":"10:00","availableTill":"17:00" },
+            { "id":"I12","name":"Vikram Nambiar", "title":"Chief of Staff",       "department":"Leadership",      "availableFrom":"10:00","availableTill":"17:00" }
+          ],
+          "rooms": [
+            { "id":"RA","name":"Room A" },
+            { "id":"RB","name":"Room B" },
+            { "id":"RC","name":"Room C" }
+          ]
+        }
+      }
+    }],
+    "Webhook - Report Disruption": [{
+      "json": {
+        "body": {
+          "disruptionType": "interviewer_cancelled",
+          "affectedId": "I1",
+          "affectedName": "Rahul Verma",
+          "notes": "Emergency board call.",
+          "reportedAt": "2026-03-29T12:00:00.000Z",
+          "currentSchedule": [
+            { "slotId":"SLOT-C1-R1","candidateId":"C1","candidateName":"Priya Sharma","role":"Backend Engineer","round":1,"roundName":"Technical/Domain","interviewerId":"I1","interviewerName":"Rahul Verma","interviewerDept":"Backend Engineer","interviewerTitle":"VP Engineering","matchReason":"Matched on Backend Engineer expertise","room":"Room A","date":"2026-03-29","startTime":"10:00","endTime":"10:45","durationMinutes":45,"status":"scheduled" },
+            { "slotId":"SLOT-C2-R1","candidateId":"C2","candidateName":"Arjun Mehta","role":"Backend Engineer","round":1,"roundName":"Technical/Domain","interviewerId":"I1","interviewerName":"Rahul Verma","interviewerDept":"Backend Engineer","interviewerTitle":"VP Engineering","matchReason":"Matched on Backend Engineer expertise","room":"Room B","date":"2026-03-29","startTime":"11:45","endTime":"12:30","durationMinutes":45,"status":"scheduled" }
+          ]
+        }
+      }
+    }]
+  }
+}

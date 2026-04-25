@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InterviewSync · n8n Node Configuration Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e1117;
+  --bg2: #161b25;
+  --bg3: #1d2535;
+  --border: #2a3348;
+  --border2: #364057;
+  --blue: #4a9eff;
+  --blue-dim: #1a3a5c;
+  --green: #3dd68c;
+  --green-dim: #0d3320;
+  --amber: #f5a623;
+  --amber-dim: #3a2800;
+  --red: #ff5c5c;
+  --red-dim: #3a0f0f;
+  --purple: #a78bfa;
+  --purple-dim: #2d1f5e;
+  --teal: #2dd4bf;
+  --teal-dim: #0d3330;
+  --text: #e2e8f0;
+  --text-mid: #8b99b5;
+  --text-dim: #4a5568;
+  --mono: 'IBM Plex Mono', monospace;
+  --serif: 'Fraunces', serif;
+  --sans: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ── Masthead ─────────────────────────────────────── */
+.masthead {
+  background: linear-gradient(135deg, #0e1117 0%, #161b25 50%, #1a2035 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 60px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.masthead::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(74,158,255,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.masthead-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.masthead-tag::before {
+  content: '';
+  width: 20px; height: 1px;
+  background: var(--blue);
+}
+.masthead h1 {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.masthead h1 span { color: var(--blue); font-style: italic; }
+.masthead-sub {
+  font-size: 14px;
+  color: var(--text-mid);
+  max-width: 600px;
+  line-height: 1.7;
+}
+.masthead-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.mpill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.mpill-blue   { border-color: var(--blue);   color: var(--blue);   background: rgba(74,158,255,0.07); }
+.mpill-green  { border-color: var(--green);  color: var(--green);  background: rgba(61,214,140,0.07); }
+.mpill-amber  { border-color: var(--amber);  color: var(--amber);  background: rgba(245,166,35,0.07); }
+
+/* ── Flow diagram ─────────────────────────────────── */
+.flow-strip {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 60px;
+  overflow-x: auto;
+}
+.flow-nodes {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+}
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.flow-box {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all .15s;
+}
+.flow-box:hover { transform: translateY(-2px); }
+.fn-label { font-size: 9px; color: var(--text-dim); text-align: center; max-width: 80px; }
+.flow-arrow {
+  width: 30px;
+  height: 2px;
+  background: var(--border2);
+  position: relative;
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+.flow-arrow::after {
+  content: '';
+  position: absolute;
+  right: -1px; top: -4px;
+  border-left: 7px solid var(--border2);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.fb-webhook  { border-color: var(--blue);   color: var(--blue);   background: var(--blue-dim); }
+.fb-code     { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+.fb-if       { border-color: var(--amber);  color: var(--amber);  background: var(--amber-dim); }
+.fb-respond  { border-color: var(--green);  color: var(--green);  background: var(--green-dim); }
+.fb-respond-err { border-color: var(--red); color: var(--red);    background: var(--red-dim); }
+
+/* ── Layout ───────────────────────────────────────── */
+.page-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 200px);
+}
+
+/* ── Sidebar nav ──────────────────────────────────── */
+.sidenav {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidenav-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 20px;
+  margin-bottom: 8px;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: all .1s;
+  border-left: 2px solid transparent;
+  text-decoration: none;
+}
+.nav-link:hover { color: var(--text); background: var(--bg3); }
+.nav-link.active { color: var(--blue); border-left-color: var(--blue); background: rgba(74,158,255,0.05); }
+.nav-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Main content ─────────────────────────────────── */
+.main-content {
+  padding: 40px 60px;
+  max-width: 900px;
+}
+
+/* ── Node section ─────────────────────────────────── */
+.node-section {
+  margin-bottom: 64px;
+  scroll-margin-top: 24px;
+}
+.node-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.node-number {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono);
+  font-size: 14px; font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.nn-blue   { background: var(--blue-dim);   color: var(--blue); }
+.nn-purple { background: var(--purple-dim); color: var(--purple); }
+.nn-amber  { background: var(--amber-dim);  color: var(--amber); }
+.nn-green  { background: var(--green-dim);  color: var(--green); }
+.nn-red    { background: var(--red-dim);    color: var(--red); }
+
+.node-title-block h2 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.node-type-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 6px;
+}
+.ntb-blue   { background: var(--blue-dim);   color: var(--blue); }
+.ntb-purple { background: var(--purple-dim); color: var(--purple); }
+.ntb-amber  { background: var(--amber-dim);  color: var(--amber); }
+.ntb-green  { background: var(--green-dim);  color: var(--green); }
+.ntb-red    { background: var(--red-dim);    color: var(--red); }
+
+/* ── What it does ────────────────────────────────── */
+.what-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+}
+.what-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.what-text { font-size: 13px; color: var(--text-mid); line-height: 1.7; }
+.what-text strong { color: var(--text); }
+
+/* ── Config steps ────────────────────────────────── */
+.config-steps { display: flex; flex-direction: column; gap: 16px; }
+.config-step {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cs-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.cs-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cs-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.cs-body { padding: 14px 16px; }
+
+/* ── Field rows ──────────────────────────────────── */
+.field-table { width: 100%; border-collapse: collapse; }
+.field-table th {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.field-table td {
+  padding: 9px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.field-table tr:last-child td { border-bottom: none; }
+.field-name { font-family: var(--mono); color: var(--purple); font-size: 11px; }
+.field-val  { font-family: var(--mono); color: var(--green); font-size: 11px; background: var(--green-dim); padding: 2px 7px; border-radius: 4px; display: inline-block; }
+.field-desc { color: var(--text-mid); font-size: 12px; line-height: 1.5; }
+
+/* ── Code block ──────────────────────────────────── */
+.code-wrap {
+  position: relative;
+  margin: 12px 0 0;
+}
+.code-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 8px 14px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111827;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+.copy-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text-mid);
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .1s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--blue); }
+pre {
+  background: #111827;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #e2e8f0;
+  margin: 0;
+}
+.kw  { color: #c792ea; }
+.str { color: #80cbc4; }
+.cmt { color: #546e7a; font-style: italic; }
+.num { color: #f78c6c; }
+.fn  { color: #82aaff; }
+.op  { color: #89ddff; }
+.var { color: #ffcb6b; }
+
+/* ── Alert cards ─────────────────────────────────── */
+.alert {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.alert-amber { background: var(--amber-dim); border-left: 3px solid var(--amber); color: #e5c97a; }
+.alert-green { background: var(--green-dim); border-left: 3px solid var(--green); color: #7de8b8; }
+.alert-red   { background: var(--red-dim);   border-left: 3px solid var(--red);   color: #ff9999; }
+.alert-blue  { background: var(--blue-dim);  border-left: 3px solid var(--blue);  color: #93c5fd; }
+.alert strong { color: #fff; }
+
+/* ── JSON block ──────────────────────────────────── */
+.json-key  { color: #80cbc4; }
+.json-str  { color: #c3e88d; }
+.json-num  { color: #f78c6c; }
+.json-bool { color: #f78c6c; }
+
+/* ── Inline highlight ────────────────────────────── */
+.hl { font-family: var(--mono); font-size: 11px; background: var(--bg3); border: 1px solid var(--border2); padding: 1px 6px; border-radius: 3px; color: var(--purple); }
+
+/* ── Connection table ────────────────────────────── */
+.conn-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.conn-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+.conn-table td { padding: 9px 12px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-mid); }
+.conn-table tr:last-child td { border-bottom: none; }
+.conn-from { color: var(--text); font-weight: 600; }
+.conn-port { font-family: var(--mono); font-size: 10px; }
+.port-true  { color: var(--green); background: var(--green-dim); padding: 2px 7px; border-radius: 4px; }
+.port-false { color: var(--red);   background: var(--red-dim);   padding: 2px 7px; border-radius: 4px; }
+.port-main  { color: var(--blue);  background: var(--blue-dim);  padding: 2px 7px; border-radius: 4px; }
+
+/* ── Section divider ─────────────────────────────── */
+.sec-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  margin-top: 8px;
+}
+.sec-divider span {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.sec-divider::before, .sec-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Sample payload ──────────────────────────────── */
+.payload-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.payload-header {
+  padding: 10px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── Masthead ──────────────────────────────────────── -->
+<div class="masthead">
+  <div class="masthead-tag">InterviewSync · Hackathon Build</div>
+  <h1>n8n Node Configuration <span>Guide</span></h1>
+  <p class="masthead-sub">Step-by-step setup for every node in the S1 Happy Path workflow. All 9 nodes, all fields, all code. Compatible with n8n 2.13.4.</p>
+  <div class="masthead-pills">
+    <span class="mpill mpill-blue">n8n 2.13.4</span>
+    <span class="mpill mpill-green">9 Nodes</span>
+    <span class="mpill mpill-amber">S1 · Happy Path</span>
+  </div>
+</div>
+
+<!-- ── Flow strip ─────────────────────────────────────── -->
+<div class="flow-strip">
+  <div class="flow-nodes">
+    <div class="flow-node">
+      <div class="flow-box fb-webhook">N1 · Webhook</div>
+      <div class="fn-label">Receive S1 Input</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-box fb-code">N2 · Code</div>
+      <div class="fn-label">Validate Payload</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-box fb-if">N3 · IF</div>
+      <div class="fn-label">Validation Passed?</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="flow-node">
+        <div class="flow-box fb-respond">N4a · Respond</div>
+        <div class="fn-label">Return Error (FALSE)</div>
+      </div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-box fb-code">N5 · Code</div>
+      <div class="fn-label">Generate Schedule</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-box fb-code">N6 · Code</div>
+      <div class="fn-label">Draft Notifications</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-node">
+      <div class="flow-box fb-if">N7 · IF</div>
+      <div class="fn-label">Schedule Complete?</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="flow-node">
+        <div class="flow-box fb-respond">N8 · Respond</div>
+        <div class="fn-label">200 Complete (TRUE)</div>
+      </div>
+      <div class="flow-node" style="margin-top:8px">
+        <div class="flow-box fb-respond-err">N9 · Respond</div>
+        <div class="fn-label">206 Partial (FALSE)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main layout ─────────────────────────────────────── -->
+<div class="page-layout">
+
+<!-- Sidebar -->
+<nav class="sidenav">
+  <div class="sidenav-label">Nodes</div>
+  <a class="nav-link active" href="#n1"><div class="nav-dot" style="background:var(--blue)"></div> N1 · Webhook</a>
+  <a class="nav-link" href="#n2"><div class="nav-dot" style="background:var(--purple)"></div> N2 · Validate</a>
+  <a class="nav-link" href="#n3"><div class="nav-dot" style="background:var(--amber)"></div> N3 · IF: Valid?</a>
+  <a class="nav-link" href="#n4"><div class="nav-dot" style="background:var(--red)"></div> N4 · Error Response</a>
+  <a class="nav-link" href="#n5"><div class="nav-dot" style="background:var(--purple)"></div> N5 · Scheduler</a>
+  <a class="nav-link" href="#n6"><div class="nav-dot" style="background:var(--purple)"></div> N6 · Notifications</a>
+  <a class="nav-link" href="#n7"><div class="nav-dot" style="background:var(--amber)"></div> N7 · IF: Complete?</a>
+  <a class="nav-link" href="#n8"><div class="nav-dot" style="background:var(--green)"></div> N8 · 200 Response</a>
+  <a class="nav-link" href="#n9"><div class="nav-dot" style="background:var(--amber)"></div> N9 · 206 Response</a>
+  <div style="height:16px"></div>
+  <div class="sidenav-label">Reference</div>
+  <a class="nav-link" href="#connections"><div class="nav-dot" style="background:var(--teal)"></div> Connections Map</a>
+  <a class="nav-link" href="#testpayload"><div class="nav-dot" style="background:var(--teal)"></div> Test Payload</a>
+</nav>
+
+<!-- Main -->
+<div class="main-content">
+
+<!-- ══════════════════════════════════════════════
+     NODE 1 — Webhook
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n1">
+  <div class="node-header">
+    <div class="node-number nn-blue">N1</div>
+    <div class="node-title-block">
+      <h2>Webhook: Receive S1 Input</h2>
+      <div><span class="node-type-badge ntb-blue">n8n-nodes-base.webhook · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🎯</div>
+    <div class="what-text"><strong>What it does:</strong> This is the entry point of the entire workflow. When Aditi clicks "Generate Optimized Schedule" on the S1 screen, the InterviewSync frontend makes a POST request to this webhook URL. The node receives the full payload — all 8 candidates, 12 interviewers, and 3 rooms — and passes it down the chain.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add the node — search "Webhook" in the node picker</div></div>
+      <div class="cs-body">
+        <p style="color:var(--text-mid);font-size:12px;margin-bottom:12px">In the canvas, click the <strong style="color:var(--text)">+</strong> button → search <strong style="color:var(--text)">"Webhook"</strong> → select <strong style="color:var(--text)">Webhook</strong> (not HTTP Request). This is always the first node.</p>
+      </div>
+    </div>
+
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure all fields in the node panel</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value to set</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">HTTP Method</td>
+              <td><span class="field-val">POST</span></td>
+              <td class="field-desc">We're sending a full JSON body (candidates, interviewers, rooms). POST is required for body data.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Path</td>
+              <td><span class="field-val">interviewsync/s1/generate</span></td>
+              <td class="field-desc">This becomes part of your webhook URL. No leading slash needed. n8n will prefix it with your instance URL automatically.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Mode</td>
+              <td><span class="field-val">Response Node</span></td>
+              <td class="field-desc"><strong style="color:var(--text)">Critical.</strong> This tells n8n to NOT auto-respond. Instead, the "Respond to Webhook" nodes (N8 / N9) send the final response. Without this, you'd get an empty response before scheduling completes.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Authentication</td>
+              <td><span class="field-val">None</span></td>
+              <td class="field-desc">For hackathon / development. In production, set to "Header Auth" and add an API key.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-amber">
+          <div class="alert-icon">⚠️</div>
+          <div><strong>Response Mode = "Response Node" is mandatory.</strong> If you leave it as "Last Node" or "Immediately", the workflow will send an empty 200 before the schedule is generated. Aditi's frontend will receive nothing useful.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">3</div><div class="cs-title">Copy your Production & Test webhook URLs</div></div>
+      <div class="cs-body">
+        <p style="color:var(--text-mid);font-size:12px;margin-bottom:10px">After saving, n8n shows two URLs at the top of the node panel:</p>
+        <table class="field-table">
+          <tbody>
+            <tr>
+              <td class="field-name">Test URL</td>
+              <td class="field-desc"><code style="color:var(--blue)">https://YOUR-N8N.com/webhook-test/interviewsync/s1/generate</code><br>Use this while testing in the n8n canvas. Only works when you click "Test workflow".</td>
+            </tr>
+            <tr>
+              <td class="field-name">Production URL</td>
+              <td class="field-desc"><code style="color:var(--green)">https://YOUR-N8N.com/webhook/interviewsync/s1/generate</code><br>Use this in the InterviewSync frontend. Only works when workflow is Active.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-blue">
+          <div class="alert-icon">💡</div>
+          <div>To test in the canvas: click <strong>"Test workflow"</strong> → then send your POST request to the <strong>Test URL</strong>. n8n will wait for the request before running the next nodes.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">4</div><div class="cs-title">No code needed — this node has no code</div></div>
+      <div class="cs-body">
+        <p style="color:var(--text-mid);font-size:12px">The Webhook node just receives the HTTP request and passes <span class="hl">$json.body</span> to the next node. The full POST body becomes available as <span class="hl">$input.first().json.body</span> in all downstream Code nodes.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 2 — Validate
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n2">
+  <div class="node-header">
+    <div class="node-number nn-purple">N2</div>
+    <div class="node-title-block">
+      <h2>Validate Input Payload</h2>
+      <div><span class="node-type-badge ntb-purple">n8n-nodes-base.code · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🛡️</div>
+    <div class="what-text"><strong>What it does:</strong> Before touching the scheduler, this node checks every field in the incoming payload. If a candidate is missing <strong>availableFrom</strong>, or an interviewer has no <strong>canInterview</strong> array, the workflow stops here and returns a specific error. This protects Aditi from a silent bad schedule.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add a Code node → rename it "Validate Input Payload"</div></div>
+      <div class="cs-body">
+        <p style="color:var(--text-mid);font-size:12px">Click <strong style="color:var(--text)">+</strong> after N1 → search <strong style="color:var(--text)">"Code"</strong> → select it. Double-click the node title to rename it.</p>
+      </div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Set Language to "JavaScript" (default) — paste the code below</div></div>
+      <div class="cs-body">
+        <div class="code-wrap">
+          <div class="code-label">
+            <span>JavaScript · Code Node</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre><span class="cmt">// ─────────────────────────────────────────────────────────</span>
+<span class="cmt">// NODE 2: Validate Input Payload</span>
+<span class="cmt">// Reads the POST body from the Webhook node.</span>
+<span class="cmt">// Returns status: 'VALID' or status: 'VALIDATION_FAILED'</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">const</span> <span class="var">body</span> <span class="op">=</span> <span class="fn">$input</span>.<span class="fn">first</span>().<span class="var">json</span>.<span class="var">body</span>;
+<span class="kw">const</span> <span class="var">errors</span> <span class="op">=</span> [];
+
+<span class="cmt">// ── Top-level arrays must exist ───────────────────────────</span>
+<span class="kw">if</span> (!<span class="var">body</span>.<span class="var">candidates</span> <span class="op">||</span> !<span class="fn">Array</span>.<span class="fn">isArray</span>(<span class="var">body</span>.<span class="var">candidates</span>) <span class="op">||</span> <span class="var">body</span>.<span class="var">candidates</span>.<span class="var">length</span> <span class="op">=== 0</span>) {
+  <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">'Missing or empty candidates array'</span>);
+}
+<span class="kw">if</span> (!<span class="var">body</span>.<span class="var">interviewers</span> <span class="op">||</span> !<span class="fn">Array</span>.<span class="fn">isArray</span>(<span class="var">body</span>.<span class="var">interviewers</span>) <span class="op">||</span> <span class="var">body</span>.<span class="var">interviewers</span>.<span class="var">length</span> <span class="op">=== 0</span>) {
+  <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">'Missing or empty interviewers array'</span>);
+}
+<span class="kw">if</span> (!<span class="var">body</span>.<span class="var">rooms</span> <span class="op">||</span> !<span class="fn">Array</span>.<span class="fn">isArray</span>(<span class="var">body</span>.<span class="var">rooms</span>) <span class="op">||</span> <span class="var">body</span>.<span class="var">rooms</span>.<span class="var">length</span> <span class="op">=== 0</span>) {
+  <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">'Missing or empty rooms array'</span>);
+}
+
+<span class="cmt">// ── Validate each candidate ───────────────────────────────</span>
+<span class="kw">if</span> (<span class="var">body</span>.<span class="var">candidates</span>) {
+  <span class="var">body</span>.<span class="var">candidates</span>.<span class="fn">forEach</span>((<span class="var">c</span>, <span class="var">i</span>) <span class="op">=></span> {
+    <span class="kw">if</span> (!<span class="var">c</span>.<span class="var">id</span>)   <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Candidate[${i}] missing id`</span>);
+    <span class="kw">if</span> (!<span class="var">c</span>.<span class="var">name</span>) <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Candidate[${i}] missing name`</span>);
+    <span class="kw">if</span> (!<span class="var">c</span>.<span class="var">role</span>) <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Candidate[${i}] missing role`</span>);
+    <span class="kw">if</span> (!<span class="var">c</span>.<span class="var">availableFrom</span> <span class="op">||</span> !<span class="var">c</span>.<span class="var">availableTo</span>) {
+      <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Candidate[${i}] (${c.name || i}) missing availableFrom/availableTo. Use 24h format: "10:00"`</span>);
+    }
+  });
+}
+
+<span class="cmt">// ── Validate each interviewer ─────────────────────────────</span>
+<span class="kw">if</span> (<span class="var">body</span>.<span class="var">interviewers</span>) {
+  <span class="var">body</span>.<span class="var">interviewers</span>.<span class="fn">forEach</span>((<span class="var">iv</span>, <span class="var">i</span>) <span class="op">=></span> {
+    <span class="kw">if</span> (!<span class="var">iv</span>.<span class="var">id</span>)   <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Interviewer[${i}] missing id`</span>);
+    <span class="kw">if</span> (!<span class="var">iv</span>.<span class="var">name</span>) <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Interviewer[${i}] missing name`</span>);
+    <span class="kw">if</span> (!<span class="var">iv</span>.<span class="var">canInterview</span> <span class="op">||</span> !<span class="fn">Array</span>.<span class="fn">isArray</span>(<span class="var">iv</span>.<span class="var">canInterview</span>)) {
+      <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Interviewer[${i}] (${iv.name || i}) missing canInterview array`</span>);
+    }
+    <span class="kw">if</span> (!<span class="var">iv</span>.<span class="var">availableFrom</span> <span class="op">||</span> !<span class="var">iv</span>.<span class="var">availableTo</span>) {
+      <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Interviewer[${i}] (${iv.name || i}) missing availableFrom/availableTo`</span>);
+    }
+  });
+}
+
+<span class="cmt">// ── Validate each room ────────────────────────────────────</span>
+<span class="kw">if</span> (<span class="var">body</span>.<span class="var">rooms</span>) {
+  <span class="var">body</span>.<span class="var">rooms</span>.<span class="fn">forEach</span>((<span class="var">r</span>, <span class="var">i</span>) <span class="op">=></span> {
+    <span class="kw">if</span> (!<span class="var">r</span>.<span class="var">id</span>)      <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Room[${i}] missing id`</span>);
+    <span class="kw">if</span> (!<span class="var">r</span>.<span class="var">name</span>)    <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Room[${i}] missing name`</span>);
+    <span class="kw">if</span> (!<span class="var">r</span>.<span class="var">purpose</span>) <span class="var">errors</span>.<span class="fn">push</span>(<span class="str">`Room[${i}] missing purpose. Use: "senior", "technical", or "design_culture"`</span>);
+  });
+}
+
+<span class="cmt">// ── Return result ─────────────────────────────────────────</span>
+<span class="kw">if</span> (<span class="var">errors</span>.<span class="var">length</span> <span class="op">> 0</span>) {
+  <span class="kw">return</span> [{ <span class="var">json</span>: { <span class="var">status</span>: <span class="str">'VALIDATION_FAILED'</span>, <span class="var">errors</span>: <span class="var">errors</span> } }];
+}
+
+<span class="kw">return</span> [{ <span class="var">json</span>: { <span class="var">status</span>: <span class="str">'VALID'</span>, <span class="var">payload</span>: <span class="var">body</span> } }];</pre>
+        </div>
+        <div class="alert alert-green">
+          <div class="alert-icon">✅</div>
+          <div><strong>Output shape:</strong> Either <span class="hl">{"status":"VALID","payload":{...}}</span> or <span class="hl">{"status":"VALIDATION_FAILED","errors":["..."]}</span>. The IF node (N3) reads the <strong>status</strong> field to decide which branch to take.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 3 — IF: Validation Passed?
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n3">
+  <div class="node-header">
+    <div class="node-number nn-amber">N3</div>
+    <div class="node-title-block">
+      <h2>Validation Passed? (IF)</h2>
+      <div><span class="node-type-badge ntb-amber">n8n-nodes-base.if · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🔀</div>
+    <div class="what-text"><strong>What it does:</strong> Reads the <strong>status</strong> field from N2. If it equals <strong>"VALID"</strong>, routes to the scheduler (N5). If not, routes to the error response (N4). This is a pure routing node — no code, just one condition.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add an IF node → rename it "Validation Passed?"</div></div>
+      <div class="cs-body">
+        <p style="color:var(--text-mid);font-size:12px">Click <strong style="color:var(--text)">+</strong> after N2 → search <strong style="color:var(--text)">"IF"</strong> → select it.</p>
+      </div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure the condition</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">Condition type</td>
+              <td><span class="field-val">String</span></td>
+              <td class="field-desc">We're comparing a string field</td>
+            </tr>
+            <tr>
+              <td class="field-name">Value 1 (left side)</td>
+              <td><span class="field-val">{{ $json.status }}</span></td>
+              <td class="field-desc">Click the expression icon (⚡) and type this. It reads the status field from N2's output.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Operation</td>
+              <td><span class="field-val">equals</span></td>
+              <td class="field-desc">Exact string match</td>
+            </tr>
+            <tr>
+              <td class="field-name">Value 2 (right side)</td>
+              <td><span class="field-val">VALID</span></td>
+              <td class="field-desc">Type this as a fixed string (no expression needed)</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="alert alert-amber">
+          <div class="alert-icon">⚠️</div>
+          <div><strong>Connection rule:</strong> The <strong>TRUE</strong> output (top) must connect to N5 (Generate Schedule). The <strong>FALSE</strong> output (bottom) must connect to N4 (Return Validation Error). n8n labels them "true" and "false" in the node's output handles.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 4 — Return Validation Error
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n4">
+  <div class="node-header">
+    <div class="node-number nn-red">N4</div>
+    <div class="node-title-block">
+      <h2>Return Validation Error</h2>
+      <div><span class="node-type-badge ntb-red">n8n-nodes-base.respondToWebhook · v1</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🚫</div>
+    <div class="what-text"><strong>What it does:</strong> Sends a <strong>400 Bad Request</strong> back to Aditi's frontend with the exact list of validation errors. This is connected to the <strong>FALSE branch</strong> of N3. The workflow ends here if validation failed.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add a "Respond to Webhook" node → connect from N3's FALSE output</div></div>
+      <div class="cs-body"><p style="color:var(--text-mid);font-size:12px">Search <strong style="color:var(--text)">"Respond to Webhook"</strong> in the node picker. This is a different node from "Webhook" — it's only used for sending responses.</p></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure all fields</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">Respond With</td>
+              <td><span class="field-val">JSON</span></td>
+              <td class="field-desc">We're returning a JSON error object</td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Body</td>
+              <td><span class="field-val">{{ JSON.stringify({status:'ERROR',errors:$json.errors}) }}</span></td>
+              <td class="field-desc">Expression mode (click ⚡). This serialises the errors array from N2 into the response body.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Code</td>
+              <td><span class="field-val">400</span></td>
+              <td class="field-desc">Under "Options → Response Code". Standard HTTP for bad request / invalid input.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 5 — Generate Schedule (CORE)
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n5">
+  <div class="node-header">
+    <div class="node-number nn-purple">N5</div>
+    <div class="node-title-block">
+      <h2>Generate Optimized Schedule</h2>
+      <div><span class="node-type-badge ntb-purple">n8n-nodes-base.code · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🧠</div>
+    <div class="what-text"><strong>What it does:</strong> The core scheduling engine. For each of the 8 candidates, it assigns 3 rounds (R1 Technical, R2 Cross-functional, R3 Culture Fit) at 45 min each with 15 min gaps. It enforces: interviewer availability window, role expertise match, room availability (no double-booking), candidate hard blocks (prayer, flight stops), and raises seniority warnings. It never silently skips a round — unschedulable slots go into a separate <strong>unscheduledSlots[]</strong> array.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add a Code node → connect from N3's TRUE output → rename "Generate Optimized Schedule"</div></div>
+      <div class="cs-body"><p style="color:var(--text-mid);font-size:12px">This node receives <span class="hl">$json.payload</span> which contains the validated candidates, interviewers, and rooms arrays.</p></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Paste the full scheduling engine code</div></div>
+      <div class="cs-body">
+        <div class="code-wrap">
+          <div class="code-label">
+            <span>JavaScript · Scheduling Engine (N5)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre><span class="cmt">// ─────────────────────────────────────────────────────────</span>
+<span class="cmt">// NODE 5: Generate Optimized Schedule</span>
+<span class="cmt">// Input:  $json.payload  (from N2 validation)</span>
+<span class="cmt">// Output: { status, summary, schedule[], warnings[], unscheduledSlots[] }</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">const</span> { <span class="var">candidates</span>, <span class="var">interviewers</span>, <span class="var">rooms</span> } <span class="op">=</span> <span class="fn">$input</span>.<span class="fn">first</span>().<span class="var">json</span>.<span class="var">payload</span>;
+
+<span class="cmt">// ── Time helpers ──────────────────────────────────────────</span>
+<span class="cmt">// toMins("10:30") → 630   (minutes since midnight)</span>
+<span class="kw">const</span> <span class="fn">toMins</span> <span class="op">=</span> (<span class="var">t</span>) <span class="op">=></span> {
+  <span class="kw">const</span> [<span class="var">h</span>, <span class="var">m</span>] <span class="op">=</span> <span class="var">t</span>.<span class="fn">split</span>(<span class="str">':'</span>).<span class="fn">map</span>(<span class="fn">Number</span>);
+  <span class="kw">return</span> <span class="var">h</span> <span class="op">*</span> <span class="num">60</span> <span class="op">+</span> <span class="var">m</span>;
+};
+
+<span class="cmt">// toTimeStr(630) → "10:30 AM"</span>
+<span class="kw">const</span> <span class="fn">toTimeStr</span> <span class="op">=</span> (<span class="var">mins</span>) <span class="op">=></span> {
+  <span class="kw">const</span> <span class="var">h</span> <span class="op">=</span> <span class="fn">Math</span>.<span class="fn">floor</span>(<span class="var">mins</span> <span class="op">/</span> <span class="num">60</span>);
+  <span class="kw">const</span> <span class="var">m</span> <span class="op">=</span> <span class="var">mins</span> <span class="op">%</span> <span class="num">60</span>;
+  <span class="kw">const</span> <span class="var">period</span> <span class="op">=</span> <span class="var">h</span> <span class="op">>= 12</span> <span class="op">?</span> <span class="str">'PM'</span> <span class="op">:</span> <span class="str">'AM'</span>;
+  <span class="kw">const</span> <span class="var">dh</span> <span class="op">=</span> <span class="var">h</span> <span class="op">> 12</span> <span class="op">?</span> <span class="var">h</span> <span class="op">- 12</span> <span class="op">:</span> <span class="var">h</span> <span class="op">=== 0</span> <span class="op">?</span> <span class="num">12</span> <span class="op">:</span> <span class="var">h</span>;
+  <span class="kw">return</span> <span class="str">`${dh}:${String(m).padStart(2,'0')} ${period}`</span>;
+};
+
+<span class="cmt">// ── Constants ─────────────────────────────────────────────</span>
+<span class="kw">const</span> <span class="var">ROUND_DURATION</span> <span class="op">=</span> <span class="num">45</span>;  <span class="cmt">// minutes per round</span>
+<span class="kw">const</span> <span class="var">GAP</span> <span class="op">=</span> <span class="num">15</span>;              <span class="cmt">// buffer gap between rounds</span>
+
+<span class="cmt">// ── 3 round types ────────────────────────────────────────</span>
+<span class="kw">const</span> <span class="var">ROUND_TYPES</span> <span class="op">=</span> [
+  { <span class="var">id</span>: <span class="str">'R1'</span>, <span class="var">label</span>: <span class="str">'Technical / Domain'</span>,  <span class="var">matchBy</span>: <span class="str">'role'</span>    },
+  { <span class="var">id</span>: <span class="str">'R2'</span>, <span class="var">label</span>: <span class="str">'Cross-functional'</span>,     <span class="var">matchBy</span>: <span class="str">'role'</span>    },
+  { <span class="var">id</span>: <span class="str">'R3'</span>, <span class="var">label</span>: <span class="str">'Culture Fit'</span>,           <span class="var">matchBy</span>: <span class="str">'culture'</span> },
+];
+
+<span class="cmt">// ── Room priority by round/role ───────────────────────────</span>
+<span class="cmt">// VP/Director → prefer Room A (Boardroom)</span>
+<span class="cmt">// Technical   → prefer Room B (has projector)</span>
+<span class="cmt">// Design/Culture → prefer Room C</span>
+<span class="kw">const</span> <span class="var">ROOM_PRIORITY</span> <span class="op">=</span> {
+  <span class="var">senior</span>:         [<span class="str">'A'</span>],
+  <span class="var">technical</span>:      [<span class="str">'B'</span>, <span class="str">'A'</span>],
+  <span class="var">design_culture</span>: [<span class="str">'C'</span>, <span class="str">'A'</span>],
+  <span class="var">culture</span>:        [<span class="str">'C'</span>, <span class="str">'B'</span>, <span class="str">'A'</span>],
+};
+
+<span class="cmt">// ── Booking registries (minute-level, prevents double-booking) ───</span>
+<span class="kw">const</span> <span class="var">roomBookings</span>        <span class="op">=</span> {};
+<span class="kw">const</span> <span class="var">interviewerBookings</span> <span class="op">=</span> {};
+
+<span class="kw">const</span> <span class="fn">isRoomFree</span> <span class="op">=</span> (<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">t</span> <span class="op">=</span> <span class="var">start</span>; <span class="var">t</span> <span class="op"><</span> <span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>; <span class="var">t</span>++) {
+    <span class="kw">if</span> (<span class="var">roomBookings</span>[<span class="str">`${id}|${t}`</span>]) <span class="kw">return false</span>;
+  }
+  <span class="kw">return true</span>;
+};
+<span class="kw">const</span> <span class="fn">bookRoom</span> <span class="op">=</span> (<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">t</span> <span class="op">=</span> <span class="var">start</span>; <span class="var">t</span> <span class="op"><</span> <span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>; <span class="var">t</span>++) <span class="var">roomBookings</span>[<span class="str">`${id}|${t}`</span>] <span class="op">=</span> <span class="kw">true</span>;
+};
+<span class="kw">const</span> <span class="fn">isIVFree</span> <span class="op">=</span> (<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">t</span> <span class="op">=</span> <span class="var">start</span>; <span class="var">t</span> <span class="op"><</span> <span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>; <span class="var">t</span>++) {
+    <span class="kw">if</span> (<span class="var">interviewerBookings</span>[<span class="str">`${id}|${t}`</span>]) <span class="kw">return false</span>;
+  }
+  <span class="kw">return true</span>;
+};
+<span class="kw">const</span> <span class="fn">bookIV</span> <span class="op">=</span> (<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">for</span> (<span class="kw">let</span> <span class="var">t</span> <span class="op">=</span> <span class="var">start</span>; <span class="var">t</span> <span class="op"><</span> <span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>; <span class="var">t</span>++) <span class="var">interviewerBookings</span>[<span class="str">`${id}|${t}`</span>] <span class="op">=</span> <span class="kw">true</span>;
+};
+
+<span class="cmt">// ── Hard block overlap check ──────────────────────────────</span>
+<span class="cmt">// Used for prayer break, any other candidate-side hard blocks</span>
+<span class="kw">const</span> <span class="fn">overlapsHardBlock</span> <span class="op">=</span> (<span class="var">candidate</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">if</span> (!<span class="var">candidate</span>.<span class="var">hardBlocks</span> <span class="op">||</span> <span class="var">candidate</span>.<span class="var">hardBlocks</span>.<span class="var">length</span> <span class="op">=== 0</span>) <span class="kw">return false</span>;
+  <span class="kw">const</span> <span class="var">end</span> <span class="op">=</span> <span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>;
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">blk</span> <span class="kw">of</span> <span class="var">candidate</span>.<span class="var">hardBlocks</span>) {
+    <span class="kw">const</span> <span class="var">bs</span> <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">blk</span>.<span class="var">from</span>);
+    <span class="kw">const</span> <span class="var">be</span> <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">blk</span>.<span class="var">to</span>);
+    <span class="kw">if</span> (!(<span class="var">end</span> <span class="op"><=</span> <span class="var">bs</span> <span class="op">||</span> <span class="var">start</span> <span class="op">>=</span> <span class="var">be</span>)) <span class="kw">return true</span>;
+  }
+  <span class="kw">return false</span>;
+};
+
+<span class="cmt">// ── Find a free interviewer matching role + time ──────────</span>
+<span class="kw">const</span> <span class="fn">findInterviewer</span> <span class="op">=</span> (<span class="var">role</span>, <span class="var">roundType</span>, <span class="var">start</span>, <span class="var">dur</span>) <span class="op">=></span> {
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">iv</span> <span class="kw">of</span> <span class="var">interviewers</span>) {
+    <span class="kw">const</span> <span class="var">ivFrom</span> <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">iv</span>.<span class="var">availableFrom</span>);
+    <span class="kw">const</span> <span class="var">ivTo</span>   <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">iv</span>.<span class="var">availableTo</span>);
+    <span class="kw">if</span> (<span class="var">start</span> <span class="op"><</span> <span class="var">ivFrom</span> <span class="op">||</span> (<span class="var">start</span> <span class="op">+</span> <span class="var">dur</span>) <span class="op">></span> <span class="var">ivTo</span>) <span class="kw">continue</span>;
+    <span class="kw">let</span> <span class="var">matches</span> <span class="op">=</span> <span class="kw">false</span>;
+    <span class="kw">if</span> (<span class="var">roundType</span>.<span class="var">matchBy</span> <span class="op">===</span> <span class="str">'culture'</span>) {
+      <span class="var">matches</span> <span class="op">=</span> <span class="var">iv</span>.<span class="var">canInterview</span>.<span class="fn">includes</span>(<span class="str">'All'</span>) <span class="op">||</span> <span class="var">iv</span>.<span class="var">canInterview</span>.<span class="fn">includes</span>(<span class="str">'Culture'</span>);
+    } <span class="kw">else</span> {
+      <span class="var">matches</span> <span class="op">=</span> <span class="var">iv</span>.<span class="var">canInterview</span>.<span class="fn">includes</span>(<span class="var">role</span>) <span class="op">||</span> <span class="var">iv</span>.<span class="var">canInterview</span>.<span class="fn">includes</span>(<span class="str">'All'</span>);
+    }
+    <span class="kw">if</span> (!<span class="var">matches</span>) <span class="kw">continue</span>;
+    <span class="kw">if</span> (!<span class="fn">isIVFree</span>(<span class="var">iv</span>.<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>)) <span class="kw">continue</span>;
+    <span class="kw">return</span> <span class="var">iv</span>;
+  }
+  <span class="kw">return null</span>;
+};
+
+<span class="cmt">// ── Find a free room for this round ──────────────────────</span>
+<span class="kw">const</span> <span class="fn">findRoom</span> <span class="op">=</span> (<span class="var">roundType</span>, <span class="var">role</span>, <span class="var">start</span>, <span class="var">dur</span>, <span class="var">ivSeniority</span>) <span class="op">=></span> {
+  <span class="kw">let</span> <span class="var">roomType</span> <span class="op">=</span> <span class="str">'technical'</span>;
+  <span class="kw">if</span> (<span class="var">roundType</span>.<span class="var">id</span> <span class="op">===</span> <span class="str">'R3'</span>) <span class="var">roomType</span> <span class="op">=</span> <span class="str">'culture'</span>;
+  <span class="kw">else if</span> (<span class="var">role</span> <span class="op">===</span> <span class="str">'Product Design'</span>) <span class="var">roomType</span> <span class="op">=</span> <span class="str">'design_culture'</span>;
+  <span class="kw">if</span> (<span class="var">ivSeniority</span> <span class="op">===</span> <span class="str">'VP'</span> <span class="op">||</span> <span class="var">ivSeniority</span> <span class="op">===</span> <span class="str">'Director'</span>) <span class="var">roomType</span> <span class="op">=</span> <span class="str">'senior'</span>;
+  <span class="kw">const</span> <span class="var">priority</span> <span class="op">=</span> <span class="var">ROOM_PRIORITY</span>[<span class="var">roomType</span>] <span class="op">||</span> <span class="var">ROOM_PRIORITY</span>[<span class="str">'technical'</span>];
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">letter</span> <span class="kw">of</span> <span class="var">priority</span>) {
+    <span class="kw">const</span> <span class="var">room</span> <span class="op">=</span> <span class="var">rooms</span>.<span class="fn">find</span>(<span class="var">r</span> <span class="op">=></span> <span class="var">r</span>.<span class="var">id</span> <span class="op">===</span> <span class="var">letter</span>);
+    <span class="kw">if</span> (!<span class="var">room</span>) <span class="kw">continue</span>;
+    <span class="kw">if</span> (<span class="fn">isRoomFree</span>(<span class="var">room</span>.<span class="var">id</span>, <span class="var">start</span>, <span class="var">dur</span>)) <span class="kw">return</span> <span class="var">room</span>;
+  }
+  <span class="kw">return null</span>;
+};
+
+<span class="cmt">// ── Main scheduling loop ──────────────────────────────────</span>
+<span class="kw">const</span> <span class="var">schedule</span>       <span class="op">=</span> [];
+<span class="kw">const</span> <span class="var">warnings</span>       <span class="op">=</span> [];
+<span class="kw">const</span> <span class="var">unscheduled</span>    <span class="op">=</span> [];
+
+<span class="kw">for</span> (<span class="kw">const</span> <span class="var">cand</span> <span class="kw">of</span> <span class="var">candidates</span>) {
+  <span class="kw">const</span> <span class="var">candFrom</span>     <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">cand</span>.<span class="var">availableFrom</span>);
+  <span class="kw">const</span> <span class="var">candTo</span>       <span class="op">=</span> <span class="fn">toMins</span>(<span class="var">cand</span>.<span class="var">availableTo</span>);
+  <span class="kw">const</span> <span class="var">hardStop</span>     <span class="op">=</span> <span class="var">cand</span>.<span class="var">hardStop</span> <span class="op">?</span> <span class="fn">toMins</span>(<span class="var">cand</span>.<span class="var">hardStop</span>) <span class="op">:</span> <span class="var">candTo</span>;
+  <span class="kw">const</span> <span class="var">candSchedule</span> <span class="op">=</span> {
+    <span class="var">candidateId</span>:   <span class="var">cand</span>.<span class="var">id</span>,
+    <span class="var">candidateName</span>: <span class="var">cand</span>.<span class="var">name</span>,
+    <span class="var">role</span>:           <span class="var">cand</span>.<span class="var">role</span>,
+    <span class="var">rounds</span>:         [],
+  };
+
+  <span class="kw">let</span> <span class="var">currentStart</span> <span class="op">=</span> <span class="var">candFrom</span>;
+
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">roundType</span> <span class="kw">of</span> <span class="var">ROUND_TYPES</span>) {
+    <span class="kw">let</span> <span class="var">scheduled</span> <span class="op">=</span> <span class="kw">false</span>;
+    <span class="kw">let</span> <span class="var">attempts</span>  <span class="op">=</span> <span class="num">0</span>;
+
+    <span class="kw">while</span> (!<span class="var">scheduled</span> <span class="op">&&</span> <span class="var">attempts</span> <span class="op"><</span> <span class="num">480</span>) {
+      <span class="kw">const</span> <span class="var">slotEnd</span> <span class="op">=</span> <span class="var">currentStart</span> <span class="op">+</span> <span class="var">ROUND_DURATION</span>;
+
+      <span class="cmt">// Exceeds availability or hard stop?</span>
+      <span class="kw">if</span> (<span class="var">slotEnd</span> <span class="op">></span> <span class="var">candTo</span> <span class="op">||</span> <span class="var">slotEnd</span> <span class="op">></span> <span class="var">hardStop</span>) {
+        <span class="var">warnings</span>.<span class="fn">push</span>({
+          <span class="var">candidateId</span>:   <span class="var">cand</span>.<span class="var">id</span>,
+          <span class="var">candidateName</span>: <span class="var">cand</span>.<span class="var">name</span>,
+          <span class="var">round</span>:         <span class="var">roundType</span>.<span class="var">id</span>,
+          <span class="var">issue</span>:         <span class="str">`Cannot fit ${roundType.label} within candidate availability window`</span>
+        });
+        <span class="kw">break</span>;
+      }
+
+      <span class="cmt">// Hits a hard block? (e.g. prayer break)</span>
+      <span class="kw">if</span> (<span class="fn">overlapsHardBlock</span>(<span class="var">cand</span>, <span class="var">currentStart</span>, <span class="var">ROUND_DURATION</span>)) {
+        <span class="var">currentStart</span>++; <span class="var">attempts</span>++; <span class="kw">continue</span>;
+      }
+
+      <span class="cmt">// Find interviewer</span>
+      <span class="kw">const</span> <span class="var">iv</span> <span class="op">=</span> <span class="fn">findInterviewer</span>(<span class="var">cand</span>.<span class="var">role</span>, <span class="var">roundType</span>, <span class="var">currentStart</span>, <span class="var">ROUND_DURATION</span>);
+      <span class="kw">if</span> (!<span class="var">iv</span>) { <span class="var">currentStart</span>++; <span class="var">attempts</span>++; <span class="kw">continue</span>; }
+
+      <span class="cmt">// Find room</span>
+      <span class="kw">const</span> <span class="var">room</span> <span class="op">=</span> <span class="fn">findRoom</span>(<span class="var">roundType</span>, <span class="var">cand</span>.<span class="var">role</span>, <span class="var">currentStart</span>, <span class="var">ROUND_DURATION</span>, <span class="var">iv</span>.<span class="var">seniority</span>);
+      <span class="kw">if</span> (!<span class="var">room</span>) { <span class="var">currentStart</span>++; <span class="var">attempts</span>++; <span class="kw">continue</span>; }
+
+      <span class="cmt">// All good — commit the booking</span>
+      <span class="fn">bookRoom</span>(<span class="var">room</span>.<span class="var">id</span>, <span class="var">currentStart</span>, <span class="var">ROUND_DURATION</span>);
+      <span class="fn">bookIV</span>(<span class="var">iv</span>.<span class="var">id</span>, <span class="var">currentStart</span>, <span class="var">ROUND_DURATION</span>);
+
+      <span class="cmt">// Seniority warning (if Tech Lead covers VP-slot)</span>
+      <span class="kw">if</span> (<span class="var">iv</span>.<span class="var">seniority</span> <span class="op">===</span> <span class="str">'TechLead'</span> <span class="op">&&</span> <span class="var">roundType</span>.<span class="var">id</span> !== <span class="str">'R3'</span>) {
+        <span class="var">warnings</span>.<span class="fn">push</span>({
+          <span class="var">candidateId</span>:   <span class="var">cand</span>.<span class="var">id</span>,
+          <span class="var">candidateName</span>: <span class="var">cand</span>.<span class="var">name</span>,
+          <span class="var">round</span>:         <span class="var">roundType</span>.<span class="var">id</span>,
+          <span class="var">issue</span>:         <span class="str">`Seniority note: ${iv.name} (TechLead) covering a VP-level slot. Aditi approval recommended.`</span>
+        });
+      }
+
+      <span class="var">candSchedule</span>.<span class="var">rounds</span>.<span class="fn">push</span>({
+        <span class="var">roundId</span>:          <span class="var">roundType</span>.<span class="var">id</span>,
+        <span class="var">roundLabel</span>:       <span class="var">roundType</span>.<span class="var">label</span>,
+        <span class="var">startTime</span>:        <span class="fn">toTimeStr</span>(<span class="var">currentStart</span>),
+        <span class="var">startMins</span>:        <span class="var">currentStart</span>,
+        <span class="var">endTime</span>:          <span class="fn">toTimeStr</span>(<span class="var">currentStart</span> <span class="op">+</span> <span class="var">ROUND_DURATION</span>),
+        <span class="var">endMins</span>:          <span class="var">currentStart</span> <span class="op">+</span> <span class="var">ROUND_DURATION</span>,
+        <span class="var">interviewerId</span>:    <span class="var">iv</span>.<span class="var">id</span>,
+        <span class="var">interviewerName</span>:  <span class="var">iv</span>.<span class="var">name</span>,
+        <span class="var">interviewerRole</span>:  <span class="var">iv</span>.<span class="var">role</span> <span class="op">||</span> <span class="str">''</span>,
+        <span class="var">roomId</span>:           <span class="var">room</span>.<span class="var">id</span>,
+        <span class="var">roomName</span>:         <span class="var">room</span>.<span class="var">name</span>,
+        <span class="var">status</span>:           <span class="str">'SCHEDULED'</span>,
+      });
+
+      <span class="var">currentStart</span> <span class="op">=</span> <span class="var">currentStart</span> <span class="op">+</span> <span class="var">ROUND_DURATION</span> <span class="op">+</span> <span class="var">GAP</span>;
+      <span class="var">scheduled</span> <span class="op">=</span> <span class="kw">true</span>;
+    }
+
+    <span class="kw">if</span> (!<span class="var">scheduled</span>) {
+      <span class="var">unscheduled</span>.<span class="fn">push</span>({
+        <span class="var">candidateId</span>:   <span class="var">cand</span>.<span class="var">id</span>,
+        <span class="var">candidateName</span>: <span class="var">cand</span>.<span class="var">name</span>,
+        <span class="var">round</span>:         <span class="var">roundType</span>.<span class="var">id</span>,
+        <span class="var">reason</span>:        <span class="str">`No valid interviewer+room combination found within candidate window`</span>
+      });
+    }
+  }
+
+  <span class="var">schedule</span>.<span class="fn">push</span>(<span class="var">candSchedule</span>);
+}
+
+<span class="cmt">// ── Build final output ────────────────────────────────────</span>
+<span class="kw">const</span> <span class="var">totalExpected</span>  <span class="op">=</span> <span class="var">candidates</span>.<span class="var">length</span> <span class="op">*</span> <span class="var">ROUND_TYPES</span>.<span class="var">length</span>;
+<span class="kw">const</span> <span class="var">totalScheduled</span> <span class="op">=</span> <span class="var">schedule</span>.<span class="fn">reduce</span>((<span class="var">s</span>, <span class="var">c</span>) <span class="op">=></span> <span class="var">s</span> <span class="op">+</span> <span class="var">c</span>.<span class="var">rounds</span>.<span class="var">length</span>, <span class="num">0</span>);
+
+<span class="kw">return</span> [{
+  <span class="var">json</span>: {
+    <span class="var">status</span>:          <span class="var">unscheduled</span>.<span class="var">length</span> <span class="op">=== 0</span> <span class="op">?</span> <span class="str">'SCHEDULE_COMPLETE'</span> <span class="op">:</span> <span class="str">'SCHEDULE_PARTIAL'</span>,
+    <span class="var">summary</span>: {
+      <span class="var">totalCandidates</span>:    <span class="var">candidates</span>.<span class="var">length</span>,
+      <span class="var">totalExpected</span>,
+      <span class="var">totalScheduled</span>,
+      <span class="var">totalWarnings</span>:      <span class="var">warnings</span>.<span class="var">length</span>,
+      <span class="var">totalUnscheduled</span>:   <span class="var">unscheduled</span>.<span class="var">length</span>,
+      <span class="var">coveragePercent</span>:    <span class="fn">Math</span>.<span class="fn">round</span>((<span class="var">totalScheduled</span> <span class="op">/</span> <span class="var">totalExpected</span>) <span class="op">*</span> <span class="num">100</span>),
+    },
+    <span class="var">schedule</span>,
+    <span class="var">warnings</span>,
+    <span class="var">unscheduledSlots</span>: <span class="var">unscheduled</span>,
+    <span class="var">generatedAt</span>:      <span class="kw">new</span> <span class="fn">Date</span>().<span class="fn">toISOString</span>(),
+  }
+}];</pre>
+        </div>
+        <div class="alert alert-green">
+          <div class="alert-icon">✅</div>
+          <div><strong>Output shape:</strong> <span class="hl">{ status, summary{}, schedule[], warnings[], unscheduledSlots[], generatedAt }</span></div>
+        </div>
+        <div class="alert alert-amber" style="margin-top:10px">
+          <div class="alert-icon">⚠️</div>
+          <div><strong>Edge cases handled inside this code:</strong>
+            <br>• <strong>Prayer break</strong> — overlapsHardBlock() skips the 1:00–1:30 PM window for Priya
+            <br>• <strong>Hard stop</strong> — Sneha (3:30 PM) and Vikram (3:00 PM) get no slot that overruns
+            <br>• <strong>Interviewer double-booking</strong> — minute-level bookIV() registry
+            <br>• <strong>Room double-booking</strong> — minute-level bookRoom() registry
+            <br>• <strong>Seniority mismatch</strong> — warning added, not a block
+            <br>• <strong>No slot found</strong> — added to unscheduledSlots[], never silently dropped</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 6 — Draft Notifications
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n6">
+  <div class="node-header">
+    <div class="node-number nn-purple">N6</div>
+    <div class="node-title-block">
+      <h2>Draft Notifications</h2>
+      <div><span class="node-type-badge ntb-purple">n8n-nodes-base.code · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">📨</div>
+    <div class="what-text"><strong>What it does:</strong> Creates personalised email drafts for every candidate and every interviewer based on N5's output. Also creates <strong>dashboard alerts</strong> for Aditi if there are seniority warnings or unschedulable rounds. All messages are status: <strong>"DRAFT"</strong> — nothing is sent until Aditi reviews and approves them on the S9 screen.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add a Code node → connect from N5 → rename "Draft Notifications"</div></div>
+      <div class="cs-body"><p style="color:var(--text-mid);font-size:12px">This node reads <span class="hl">$json.schedule</span>, <span class="hl">$json.warnings</span>, and <span class="hl">$json.unscheduledSlots</span> from N5.</p></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Paste the notifications drafting code</div></div>
+      <div class="cs-body">
+        <div class="code-wrap">
+          <div class="code-label">
+            <span>JavaScript · Draft Notifications (N6)</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+<pre><span class="cmt">// ─────────────────────────────────────────────────────────</span>
+<span class="cmt">// NODE 6: Draft Notifications</span>
+<span class="cmt">// Input:  $json from N5 (schedule, warnings, unscheduledSlots)</span>
+<span class="cmt">// Output: same $json + notifications[] array (all DRAFT status)</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">const</span> { <span class="var">schedule</span>, <span class="var">warnings</span>, <span class="var">unscheduledSlots</span>, <span class="var">summary</span> } <span class="op">=</span> <span class="fn">$input</span>.<span class="fn">first</span>().<span class="var">json</span>;
+<span class="kw">const</span> <span class="var">notifications</span> <span class="op">=</span> [];
+
+<span class="cmt">// ── 1. Candidate notifications ─────────────────────────</span>
+<span class="kw">for</span> (<span class="kw">const</span> <span class="var">cand</span> <span class="kw">of</span> <span class="var">schedule</span>) {
+  <span class="kw">if</span> (<span class="var">cand</span>.<span class="var">rounds</span>.<span class="var">length</span> <span class="op">=== 0</span>) <span class="kw">continue</span>;
+
+  <span class="kw">const</span> <span class="var">roundLines</span> <span class="op">=</span> <span class="var">cand</span>.<span class="var">rounds</span>.<span class="fn">map</span>(<span class="var">r</span> <span class="op">=></span>
+    <span class="str">`• ${r.roundId} (${r.roundLabel}): ${r.startTime} – ${r.endTime} with ${r.interviewerName} in ${r.roomName}`</span>
+  ).<span class="fn">join</span>(<span class="str">'\n'</span>);
+
+  <span class="var">notifications</span>.<span class="fn">push</span>({
+    <span class="var">to</span>:        <span class="var">cand</span>.<span class="var">candidateName</span>,
+    <span class="var">type</span>:      <span class="str">'CANDIDATE'</span>,
+    <span class="var">id</span>:        <span class="var">cand</span>.<span class="var">candidateId</span>,
+    <span class="var">channel</span>:   <span class="str">'email'</span>,
+    <span class="var">subject</span>:   <span class="str">'Your Interview Schedule — NovaBuild Super Day'</span>,
+    <span class="var">body</span>:      <span class="str">`Hi ${cand.candidateName.split(' ')[0]},\n\nWe're excited to have you join us for the NovaBuild Super Day! Here is your personalised schedule:\n\n${roundLines}\n\nPlease arrive 10 minutes before your first round.\n\nBest of luck!\nAditi Sharma, HR Lead — TechScale`</span>,
+    <span class="var">status</span>:    <span class="str">'DRAFT'</span>,
+  });
+}
+
+<span class="cmt">// ── 2. Interviewer notifications (grouped by interviewer) ─</span>
+<span class="kw">const</span> <span class="var">ivSlots</span> <span class="op">=</span> {};
+<span class="kw">for</span> (<span class="kw">const</span> <span class="var">cand</span> <span class="kw">of</span> <span class="var">schedule</span>) {
+  <span class="kw">for</span> (<span class="kw">const</span> <span class="var">round</span> <span class="kw">of</span> <span class="var">cand</span>.<span class="var">rounds</span>) {
+    <span class="kw">if</span> (!<span class="var">ivSlots</span>[<span class="var">round</span>.<span class="var">interviewerId</span>]) {
+      <span class="var">ivSlots</span>[<span class="var">round</span>.<span class="var">interviewerId</span>] <span class="op">=</span> { <span class="var">name</span>: <span class="var">round</span>.<span class="var">interviewerName</span>, <span class="var">slots</span>: [] };
+    }
+    <span class="var">ivSlots</span>[<span class="var">round</span>.<span class="var">interviewerId</span>].<span class="var">slots</span>.<span class="fn">push</span>({
+      <span class="var">candidateName</span>: <span class="var">cand</span>.<span class="var">candidateName</span>,
+      <span class="var">role</span>:          <span class="var">cand</span>.<span class="var">role</span>,
+      <span class="var">round</span>:         <span class="var">round</span>.<span class="var">roundId</span>,
+      <span class="var">roundLabel</span>:    <span class="var">round</span>.<span class="var">roundLabel</span>,
+      <span class="var">startTime</span>:     <span class="var">round</span>.<span class="var">startTime</span>,
+      <span class="var">endTime</span>:       <span class="var">round</span>.<span class="var">endTime</span>,
+      <span class="var">roomName</span>:      <span class="var">round</span>.<span class="var">roomName</span>,
+    });
+  }
+}
+
+<span class="kw">for</span> (<span class="kw">const</span> [<span class="var">ivId</span>, <span class="var">ivData</span>] <span class="kw">of</span> <span class="fn">Object</span>.<span class="fn">entries</span>(<span class="var">ivSlots</span>)) {
+  <span class="kw">const</span> <span class="var">slotLines</span> <span class="op">=</span> <span class="var">ivData</span>.<span class="var">slots</span>.<span class="fn">map</span>(<span class="var">s</span> <span class="op">=></span>
+    <span class="str">`• ${s.startTime}–${s.endTime}: ${s.candidateName} (${s.role}) — ${s.roundLabel} — ${s.roomName}`</span>
+  ).<span class="fn">join</span>(<span class="str">'\n'</span>);
+
+  <span class="var">notifications</span>.<span class="fn">push</span>({
+    <span class="var">to</span>:        <span class="var">ivData</span>.<span class="var">name</span>,
+    <span class="var">type</span>:      <span class="str">'INTERVIEWER'</span>,
+    <span class="var">id</span>:        <span class="var">ivId</span>,
+    <span class="var">channel</span>:   <span class="str">'email'</span>,
+    <span class="var">subject</span>:   <span class="str">'Your Panel Schedule — NovaBuild Super Day'</span>,
+    <span class="var">body</span>:      <span class="str">`Hi ${ivData.name.split(' ')[0]},\n\nThank you for being part of the NovaBuild Super Day panel! Your assigned slots:\n\n${slotLines}\n\nCandidate profiles are available in Lever. Please review before each session.\n\nThank you,\nAditi Sharma, HR Lead — TechScale`</span>,
+    <span class="var">status</span>:    <span class="str">'DRAFT'</span>,
+  });
+}
+
+<span class="cmt">// ── 3. Warning alert → shown on Aditi's dashboard ────────</span>
+<span class="kw">if</span> (<span class="var">warnings</span>.<span class="var">length</span> <span class="op">> 0</span>) {
+  <span class="kw">const</span> <span class="var">lines</span> <span class="op">=</span> <span class="var">warnings</span>.<span class="fn">map</span>(<span class="var">w</span> <span class="op">=></span> <span class="str">`• [${w.candidateId}] ${w.candidateName} — ${w.round}: ${w.issue}`</span>).<span class="fn">join</span>(<span class="str">'\n'</span>);
+  <span class="var">notifications</span>.<span class="fn">push</span>({
+    <span class="var">to</span>:      <span class="str">'Aditi Sharma'</span>,
+    <span class="var">type</span>:    <span class="str">'HR_ALERT'</span>,
+    <span class="var">channel</span>: <span class="str">'dashboard'</span>,
+    <span class="var">subject</span>: <span class="str">`${warnings.length} Schedule Warning(s) — Review Required`</span>,
+    <span class="var">body</span>:    <span class="str">`Seniority / constraint warnings raised during schedule generation:\n\n${lines}\n\nPlease confirm or override each flagged slot.`</span>,
+    <span class="var">status</span>:  <span class="str">'DRAFT'</span>,
+  });
+}
+
+<span class="cmt">// ── 4. Critical alert if any rounds couldn't be scheduled ─</span>
+<span class="kw">if</span> (<span class="var">unscheduledSlots</span>.<span class="var">length</span> <span class="op">> 0</span>) {
+  <span class="kw">const</span> <span class="var">lines</span> <span class="op">=</span> <span class="var">unscheduledSlots</span>.<span class="fn">map</span>(<span class="var">u</span> <span class="op">=></span> <span class="str">`• ${u.candidateName} — ${u.round}: ${u.reason}`</span>).<span class="fn">join</span>(<span class="str">'\n'</span>);
+  <span class="var">notifications</span>.<span class="fn">push</span>({
+    <span class="var">to</span>:      <span class="str">'Aditi Sharma'</span>,
+    <span class="var">type</span>:    <span class="str">'HR_CRITICAL'</span>,
+    <span class="var">channel</span>: <span class="str">'dashboard'</span>,
+    <span class="var">subject</span>: <span class="str">`CRITICAL: ${unscheduledSlots.length} Round(s) Could Not Be Scheduled`</span>,
+    <span class="var">body</span>:    <span class="str">`These rounds could not be scheduled due to interviewer/room constraints:\n\n${lines}\n\nManual intervention required before Super Day begins.`</span>,
+    <span class="var">status</span>:  <span class="str">'DRAFT'</span>,
+  });
+}
+
+<span class="cmt">// ── Pass everything forward ───────────────────────────────</span>
+<span class="kw">return</span> [{
+  <span class="var">json</span>: {
+    ...<span class="fn">$input</span>.<span class="fn">first</span>().<span class="var">json</span>,   <span class="cmt">// keep everything from N5</span>
+    <span class="var">notifications</span>,
+    <span class="var">notificationCount</span>: <span class="var">notifications</span>.<span class="var">length</span>,
+  }
+}];</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 7 — IF: Schedule Complete?
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n7">
+  <div class="node-header">
+    <div class="node-number nn-amber">N7</div>
+    <div class="node-title-block">
+      <h2>Schedule Complete? (IF)</h2>
+      <div><span class="node-type-badge ntb-amber">n8n-nodes-base.if · v2</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">🔀</div>
+    <div class="what-text"><strong>What it does:</strong> Checks N5's <strong>status</strong> field. If all rounds were scheduled (<strong>"SCHEDULE_COMPLETE"</strong>), routes to the 200 happy-path response (N8). If some couldn't fit (<strong>"SCHEDULE_PARTIAL"</strong>), routes to the 206 partial response (N9) so Aditi knows she needs to intervene.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add an IF node → connect from N6 → rename "Schedule Complete?"</div></div>
+      <div class="cs-body"></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure the condition — identical pattern to N3</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td class="field-name">Condition type</td><td><span class="field-val">String</span></td></tr>
+            <tr><td class="field-name">Value 1</td><td><span class="field-val">{{ $json.status }}</span></td></tr>
+            <tr><td class="field-name">Operation</td><td><span class="field-val">equals</span></td></tr>
+            <tr><td class="field-name">Value 2</td><td><span class="field-val">SCHEDULE_COMPLETE</span></td></tr>
+          </tbody>
+        </table>
+        <div class="alert alert-amber" style="margin-top:12px">
+          <div class="alert-icon">⚠️</div>
+          <div><strong>TRUE</strong> → connect to N8 (Return Complete Schedule, 200). &nbsp; <strong>FALSE</strong> → connect to N9 (Return Partial Schedule, 206).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 8 — Return Complete Schedule
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n8">
+  <div class="node-header">
+    <div class="node-number nn-green">N8</div>
+    <div class="node-title-block">
+      <h2>Return Complete Schedule</h2>
+      <div><span class="node-type-badge ntb-green">n8n-nodes-base.respondToWebhook · v1</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">✅</div>
+    <div class="what-text"><strong>What it does:</strong> Happy path ending. Sends <strong>200 OK</strong> with the full schedule, all notification drafts, summary stats, and any warnings. Aditi's frontend receives this and shows her the S2 Master Dashboard with the generated schedule ready for review.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add "Respond to Webhook" → connect from N7's TRUE output</div></div>
+      <div class="cs-body"></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure fields</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">Respond With</td>
+              <td><span class="field-val">JSON</span></td>
+              <td class="field-desc"></td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Body</td>
+              <td><span class="field-val">{{ JSON.stringify($json) }}</span></td>
+              <td class="field-desc">Expression mode. Serialises the entire output from N6 (schedule + notifications + summary).</td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Code</td>
+              <td><span class="field-val">200</span></td>
+              <td class="field-desc">Under Options → Response Code</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NODE 9 — Return Partial Schedule
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="n9">
+  <div class="node-header">
+    <div class="node-number nn-amber">N9</div>
+    <div class="node-title-block">
+      <h2>Return Partial Schedule + Alert</h2>
+      <div><span class="node-type-badge ntb-amber">n8n-nodes-base.respondToWebhook · v1</span></div>
+    </div>
+  </div>
+
+  <div class="what-card">
+    <div class="what-icon">⚠️</div>
+    <div class="what-text"><strong>What it does:</strong> Edge case ending. Sends <strong>206 Partial Content</strong> when some rounds could not be scheduled. Returns whatever was scheduled + the <strong>unscheduledSlots[]</strong> list + HR_CRITICAL notifications. Aditi knows she must manually intervene before the day begins. This is the "never silently fail" guarantee.</div>
+  </div>
+
+  <div class="config-steps">
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">1</div><div class="cs-title">Add "Respond to Webhook" → connect from N7's FALSE output</div></div>
+      <div class="cs-body"></div>
+    </div>
+    <div class="config-step">
+      <div class="cs-header"><div class="cs-num">2</div><div class="cs-title">Configure fields</div></div>
+      <div class="cs-body">
+        <table class="field-table">
+          <thead><tr><th>Field</th><th>Value</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="field-name">Respond With</td>
+              <td><span class="field-val">JSON</span></td>
+              <td class="field-desc"></td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Body</td>
+              <td><span class="field-val">{{ JSON.stringify({...$json, message:'Some rounds could not be scheduled. Review unscheduledSlots before proceeding.'}) }}</span></td>
+              <td class="field-desc">Expression mode. Spreads the full $json and adds a human-readable message field.</td>
+            </tr>
+            <tr>
+              <td class="field-name">Response Code</td>
+              <td><span class="field-val">206</span></td>
+              <td class="field-desc">Under Options → Response Code. 206 = Partial Content — tells the frontend this isn't a full success.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CONNECTIONS MAP
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="connections">
+  <div class="sec-divider"><span>Connections Map</span></div>
+  <div class="what-card">
+    <div class="what-icon">🗺️</div>
+    <div class="what-text"><strong>How to wire all 9 nodes together in n8n.</strong> After placing all nodes, drag connections between them exactly as shown below. In n8n, drag from the output circle of the source node to the input circle of the target node.</div>
+  </div>
+  <table class="conn-table">
+    <thead><tr><th>From Node</th><th>Output Port</th><th>To Node</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="conn-from">N1 · Webhook</td><td><span class="conn-port port-main">main (0)</span></td><td>N2 · Validate</td><td style="font-size:12px;color:var(--text-mid)">Single output — always goes to validation</td></tr>
+      <tr><td class="conn-from">N2 · Validate</td><td><span class="conn-port port-main">main (0)</span></td><td>N3 · IF: Valid?</td><td style="font-size:12px;color:var(--text-mid)">Single output</td></tr>
+      <tr><td class="conn-from">N3 · IF: Valid?</td><td><span class="conn-port port-true">TRUE (0)</span></td><td>N5 · Generate Schedule</td><td style="font-size:12px;color:var(--text-mid)">Top output handle in n8n</td></tr>
+      <tr><td class="conn-from">N3 · IF: Valid?</td><td><span class="conn-port port-false">FALSE (1)</span></td><td>N4 · Return Error</td><td style="font-size:12px;color:var(--text-mid)">Bottom output handle in n8n</td></tr>
+      <tr><td class="conn-from">N5 · Generate Schedule</td><td><span class="conn-port port-main">main (0)</span></td><td>N6 · Draft Notifications</td><td style="font-size:12px;color:var(--text-mid)">Single output</td></tr>
+      <tr><td class="conn-from">N6 · Draft Notifications</td><td><span class="conn-port port-main">main (0)</span></td><td>N7 · IF: Complete?</td><td style="font-size:12px;color:var(--text-mid)">Single output</td></tr>
+      <tr><td class="conn-from">N7 · IF: Complete?</td><td><span class="conn-port port-true">TRUE (0)</span></td><td>N8 · Return Complete</td><td style="font-size:12px;color:var(--text-mid)">200 OK — happy path</td></tr>
+      <tr><td class="conn-from">N7 · IF: Complete?</td><td><span class="conn-port port-false">FALSE (1)</span></td><td>N9 · Return Partial</td><td style="font-size:12px;color:var(--text-mid)">206 Partial — edge case</td></tr>
+    </tbody>
+  </table>
+  <div class="alert alert-blue" style="margin-top:16px">
+    <div class="alert-icon">💡</div>
+    <div><strong>N4 is a dead-end.</strong> It only connects FROM N3's FALSE output — it has no output connection itself. The workflow ends there when validation fails. Same for N8 and N9 — they are terminal nodes that send the HTTP response and end execution.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     TEST PAYLOAD
+═══════════════════════════════════════════════ -->
+<div class="node-section" id="testpayload">
+  <div class="sec-divider"><span>Test Payload — Full NovaBuild Super Day</span></div>
+  <div class="what-card">
+    <div class="what-icon">🧪</div>
+    <div class="what-text"><strong>How to test:</strong> Click <strong>"Test workflow"</strong> in n8n → then POST this JSON to the <strong>Test webhook URL</strong> using Postman, curl, or your frontend. The workflow will run all 9 nodes and return the full schedule.</div>
+  </div>
+
+  <div class="payload-section">
+    <div class="payload-header">📋 POST Body · Content-Type: application/json</div>
+    <div class="code-wrap" style="margin:0">
+      <div class="code-label" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+        <span>Full test payload — paste into Postman or curl</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+<pre style="border-radius:0 0 10px 10px;border:none;border-top:1px solid var(--border)">{
+  <span class="json-key">"superDayName"</span>: <span class="json-str">"NovaBuild Super Day"</span>,
+  <span class="json-key">"superDayDate"</span>: <span class="json-str">"2026-03-29"</span>,
+  <span class="json-key">"candidates"</span>: [
+    { <span class="json-key">"id"</span>:<span class="json-str">"C1"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Priya Sharma"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Backend"</span>,        <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"16:00"</span>, <span class="json-key">"hardBlocks"</span>:[{<span class="json-key">"from"</span>:<span class="json-str">"13:00"</span>,<span class="json-key">"to"</span>:<span class="json-str">"13:30"</span>,<span class="json-key">"reason"</span>:<span class="json-str">"Prayer break"</span>}] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C2"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Arjun Mehta"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"Backend"</span>,        <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C3"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Sneha Iyer"</span>,    <span class="json-key">"role"</span>:<span class="json-str">"Product Design"</span>, <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:30"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"15:30"</span>, <span class="json-key">"hardStop"</span>:<span class="json-str">"15:30"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C4"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Rohan Das"</span>,     <span class="json-key">"role"</span>:<span class="json-str">"Product Design"</span>, <span class="json-key">"availableFrom"</span>:<span class="json-str">"11:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C5"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Kavya Nair"</span>,    <span class="json-key">"role"</span>:<span class="json-str">"Data"</span>,           <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"16:00"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C6"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Amir Khan"</span>,     <span class="json-key">"role"</span>:<span class="json-str">"Data"</span>,           <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C7"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Tanya Gupta"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"Backend"</span>,        <span class="json-key">"availableFrom"</span>:<span class="json-str">"11:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span>, <span class="json-key">"hardBlocks"</span>:[] },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C8"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Vikram Joshi"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Data"</span>,           <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"15:00"</span>, <span class="json-key">"hardStop"</span>:<span class="json-str">"15:00"</span>, <span class="json-key">"hardBlocks"</span>:[] }
+  ],
+  <span class="json-key">"interviewers"</span>: [
+    { <span class="json-key">"id"</span>:<span class="json-str">"I1"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Rahul Verma"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"VP Engineering"</span>,      <span class="json-key">"seniority"</span>:<span class="json-str">"VP"</span>,       <span class="json-key">"canInterview"</span>:[<span class="json-str">"Backend"</span>],               <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"14:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I2"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Meera Patel"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"Sr. Engineer"</span>,         <span class="json-key">"seniority"</span>:<span class="json-str">"Senior"</span>,   <span class="json-key">"canInterview"</span>:[<span class="json-str">"Backend"</span>],               <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I3"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Siddharth Rao"</span>, <span class="json-key">"role"</span>:<span class="json-str">"Tech Lead"</span>,            <span class="json-key">"seniority"</span>:<span class="json-str">"TechLead"</span>, <span class="json-key">"canInterview"</span>:[<span class="json-str">"Backend"</span>,<span class="json-str">"Data"</span>],     <span class="json-key">"availableFrom"</span>:<span class="json-str">"11:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"16:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I4"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Ananya Joshi"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Design Lead"</span>,          <span class="json-key">"seniority"</span>:<span class="json-str">"Lead"</span>,     <span class="json-key">"canInterview"</span>:[<span class="json-str">"Product Design"</span>],       <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I5"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Karan Singh"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"Sr. Designer"</span>,         <span class="json-key">"seniority"</span>:<span class="json-str">"Senior"</span>,   <span class="json-key">"canInterview"</span>:[<span class="json-str">"Product Design"</span>],       <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:30"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"15:30"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I6"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Neha Kulkarni"</span>, <span class="json-key">"role"</span>:<span class="json-str">"PM"</span>,                   <span class="json-key">"seniority"</span>:<span class="json-str">"Manager"</span>,  <span class="json-key">"canInterview"</span>:[<span class="json-str">"Product Design"</span>,<span class="json-str">"Data"</span>], <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I7"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Deepak Menon"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Data Lead"</span>,            <span class="json-key">"seniority"</span>:<span class="json-str">"Lead"</span>,     <span class="json-key">"canInterview"</span>:[<span class="json-str">"Data"</span>],                   <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"16:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I8"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Ritu Agarwal"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Sr. Analyst"</span>,          <span class="json-key">"seniority"</span>:<span class="json-str">"Senior"</span>,   <span class="json-key">"canInterview"</span>:[<span class="json-str">"Data"</span>],                   <span class="json-key">"availableFrom"</span>:<span class="json-str">"11:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I9"</span>,  <span class="json-key">"name"</span>:<span class="json-str">"Pooja Reddy"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"HR Manager"</span>,           <span class="json-key">"seniority"</span>:<span class="json-str">"Manager"</span>,  <span class="json-key">"canInterview"</span>:[<span class="json-str">"All"</span>],                    <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I10"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Amit Saharan"</span>,  <span class="json-key">"role"</span>:<span class="json-str">"Director Engineering"</span>, <span class="json-key">"seniority"</span>:<span class="json-str">"Director"</span>, <span class="json-key">"canInterview"</span>:[<span class="json-str">"Backend"</span>],               <span class="json-key">"availableFrom"</span>:<span class="json-str">"14:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I11"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Farhan Sheikh"</span>, <span class="json-key">"role"</span>:<span class="json-str">"UX Researcher"</span>,        <span class="json-key">"seniority"</span>:<span class="json-str">"Senior"</span>,   <span class="json-key">"canInterview"</span>:[<span class="json-str">"Product Design"</span>],       <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"15:00"</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"I12"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Lisa Thomas"</span>,   <span class="json-key">"role"</span>:<span class="json-str">"Chief of Staff"</span>,       <span class="json-key">"seniority"</span>:<span class="json-str">"Senior"</span>,   <span class="json-key">"canInterview"</span>:[<span class="json-str">"All"</span>],                    <span class="json-key">"availableFrom"</span>:<span class="json-str">"10:00"</span>, <span class="json-key">"availableTo"</span>:<span class="json-str">"17:00"</span> }
+  ],
+  <span class="json-key">"rooms"</span>: [
+    { <span class="json-key">"id"</span>:<span class="json-str">"A"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Room A — Boardroom"</span>,         <span class="json-key">"purpose"</span>:<span class="json-str">"senior"</span>,         <span class="json-key">"hasProjector"</span>:<span class="json-bool">false</span> },
+    { <span class="json-key">"id"</span>:<span class="json-str">"B"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Room B — Conference Room 2"</span>, <span class="json-key">"purpose"</span>:<span class="json-str">"technical"</span>,      <span class="json-key">"hasProjector"</span>:<span class="json-bool">true</span>  },
+    { <span class="json-key">"id"</span>:<span class="json-str">"C"</span>, <span class="json-key">"name"</span>:<span class="json-str">"Room C — Conference Room 3"</span>, <span class="json-key">"purpose"</span>:<span class="json-str">"design_culture"</span>, <span class="json-key">"hasProjector"</span>:<span class="json-bool">false</span> }
+  ]
+}</pre>
+    </div>
+  </div>
+
+  <div class="alert alert-green" style="margin-top:16px">
+    <div class="alert-icon">✅</div>
+    <div><strong>Expected response:</strong> 200 OK with <span class="hl">status: "SCHEDULE_COMPLETE"</span>, 24 scheduled rounds (8 candidates × 3 rounds), notification drafts for every candidate and interviewer, and any seniority warnings in the <span class="hl">warnings[]</span> array.</div>
+  </div>
+</div>
+
+</div><!-- /main-content -->
+</div><!-- /page-layout -->
+
+<script>
+// ── Copy button ────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-label').nextElementSibling;
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  });
+}
+
+// ── Active nav highlighting ─────────────────────────
+const sections = document.querySelectorAll('.node-section');
+const navLinks = document.querySelectorAll('.nav-link');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      navLinks.forEach(l => {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { threshold: 0.3 });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+
+<style>
+  .persona-wrap { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .persona-header { display: flex; align-items: center; gap: 20px; margin-bottom: 1.5rem; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: #CECBF6; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 500; color: #3C3489; flex-shrink: 0; }
+  .header-meta h1 { font-size: 20px; font-weight: 500; margin: 0 0 2px; color: var(--color-text-primary); }
+  .header-meta p { font-size: 13px; color: var(--color-text-secondary); margin: 0; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .tag { font-size: 11px; padding: 3px 10px; border-radius: var(--border-radius-md); font-weight: 500; }
+  .tag-purple { background: #EEEDFE; color: #3C3489; }
+  .tag-teal { background: #E1F5EE; color: #0F6E56; }
+  .tag-amber { background: #FAEEDA; color: #854F0B; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .card-section-title { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: var(--color-text-secondary); text-transform: uppercase; margin: 0 0 10px; }
+  .item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+  .dot-purple { background: #7F77DD; }
+  .dot-red { background: #E24B4A; }
+  .dot-teal { background: #1D9E75; }
+  .dot-amber { background: #BA7517; }
+  .item-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.5; }
+  .quote-block { background: #EEEDFE; border-left: 3px solid #7F77DD; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: 0.75rem 1rem; margin-bottom: 12px; }
+  .quote-text { font-size: 13px; color: #3C3489; font-style: italic; line-height: 1.6; margin: 0; }
+  .metric-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.875rem 1rem; text-align: center; }
+  .metric-num { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-label { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+  .pain-card { background: #FCEBEB; border: 0.5px solid #F7C1C1; border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .pain-card .card-section-title { color: #A32D2D; }
+  .scenario-card { background: #FAEEDA; border: 0.5px solid #FAC775; border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+  .scenario-card .card-section-title { color: #854F0B; }
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1rem 0; }
+</style>
+
+<div class="persona-wrap">
+
+  <div class="persona-header">
+    <div class="avatar">AD</div>
+    <div class="header-meta">
+      <h1>Aditi Sharma</h1>
+      <p>HR Lead · TechScale (Series B, Bengaluru) · 5 yrs in HR ops</p>
+      <div class="tag-row">
+        <span class="tag tag-purple">Super Day Coordinator</span>
+        <span class="tag tag-teal">People Ops</span>
+        <span class="tag tag-amber">High-Growth Startup</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="metric-card">
+      <div class="metric-num">8</div>
+      <div class="metric-label">Candidates today</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">12</div>
+      <div class="metric-label">Interviewers on panel</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-num">3</div>
+      <div class="metric-label">Interview rooms</div>
+    </div>
+  </div>
+
+  <div class="quote-block">
+    <p class="quote-text">"I spend the whole Super Day staring at my phone, praying nobody cancels. The moment one senior interviewer drops out, my entire schedule turns into a house of cards."</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <p class="card-section-title">Background</p>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Manages end-to-end hiring for Engineering & Product at a 200-person startup scaling to 350</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Runs 4–6 Super Days per quarter; no dedicated scheduling tool beyond Outlook and a shared Google Sheet</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Collaborates with 3 hiring managers and relies on interviewer goodwill for last-minute coverage</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Often operates with 1-hour prep time between panels and no dedicated coordinator support</span></div>
+    </div>
+
+    <div class="card">
+      <p class="card-section-title">Goals</p>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Deliver a seamless, professional candidate experience — even when chaos hits behind the scenes</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Maintain panel seniority balance if someone drops — not just fill a warm body in the slot</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Communicate proactively to candidates and interviewers without sounding disorganised</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Reduce post-Super Day debrief gaps caused by missed or swapped interview sequences</span></div>
+    </div>
+  </div>
+
+  <div class="pain-card" style="margin-bottom: 12px;">
+    <p class="card-section-title">Pain points</p>
+    <div class="grid-2" style="margin-bottom: 0;">
+      <div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">No real-time view of interviewer availability across rooms — relies on manual calls and Slack messages</span></div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">Cascade effect: a single VP cancellation breaks room allocation, candidate sequence, and debrief order simultaneously</span></div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">Candidates receive conflicting or late updates, damaging employer brand for high-priority hires</span></div>
+      </div>
+      <div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">No substitute-interviewer registry — she has to mentally recall who is qualified and available on the spot</span></div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">Juggling WhatsApp, email, calendar invites, and a Google Sheet simultaneously under time pressure</span></div>
+        <div class="item"><div class="dot dot-red"></div><span class="item-text">Recovery decisions must still honour seniority, interview type (technical/behavioural), and conflict-of-interest rules</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario-card" style="margin-bottom: 12px;">
+    <p class="card-section-title">The critical moment — 1:45 PM</p>
+    <div class="item"><div class="dot dot-amber"></div><span class="item-text">Senior VP (scheduled 2:00 PM, Room B) messages: "Something came up, can't make it"</span></div>
+    <div class="item"><div class="dot dot-amber"></div><span class="item-text">Candidate for that slot is already in the waiting area; two more slots depend on this room being freed on time</span></div>
+    <div class="item"><div class="dot dot-amber"></div><span class="item-text">Aditi must identify a qualified replacement, get confirmation, update the room booking, re-notify the candidate, and alert the debrief coordinator — all within 10 minutes</span></div>
+    <div class="item"><div class="dot dot-amber"></div><span class="item-text">If she fails, the candidate either waits visibly or the interview is cancelled — both outcomes hurt offer acceptance rates</span></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <p class="card-section-title">Tools currently used</p>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Outlook Calendar for invite management</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Google Sheets as the "source of truth" schedule</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">WhatsApp groups for real-time coordination</span></div>
+      <div class="item"><div class="dot dot-purple"></div><span class="item-text">Lever (ATS) for candidate records — not used live on the day</span></div>
+    </div>
+    <div class="card">
+      <p class="card-section-title">What she needs from a solution</p>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Instant substitute suggestions ranked by availability, seniority, and conflict rules</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Auto-cascade: room re-assignment, candidate re-notification, and debrief update in one action</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Audit trail she can share with hiring managers post-event</span></div>
+      <div class="item"><div class="dot dot-teal"></div><span class="item-text">Works within tools she already uses — no new login under pressure</span></div>
+    </div>
+  </div>
+
+</div>

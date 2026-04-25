@@ -1,0 +1,279 @@
+{
+  "name": "The Panel Orchestration",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4388be0-1df0-4166-b9c4-33eb14ba4ae1",
+              "name": "candidates",
+              "value": "[   {     \"id\": \"C1\",     \"name\": \"Priya Sharma\",     \"role\": \"Backend\",     \"availability\": [\"10:00\", \"16:00\"],     \"constraints\": {       \"prayerBreak\": [\"13:00\", \"13:30\"]     }   },   {     \"id\": \"C2\",     \"name\": \"Arjun Mehta\",     \"role\": \"Backend\",     \"availability\": [\"10:00\", \"17:00\"]   } ]",
+              "type": "string"
+            },
+            {
+              "id": "b12268f2-9986-4647-95fe-53033b186c07",
+              "name": "interviewers",
+              "value": "[   {     \"id\": \"I1\",     \"name\": \"Rahul Verma\",     \"role\": \"VP\",     \"skills\": [\"Backend\"],     \"availability\": [\"10:00\", \"14:00\"]   },   {     \"id\": \"I2\",     \"name\": \"Meera Patel\",     \"role\": \"Senior Engineer\",     \"skills\": [\"Backend\"],     \"availability\": [\"10:00\", \"17:00\"]   } ]",
+              "type": "string"
+            },
+            {
+              "id": "95a7f474-d2cd-4cf4-9f32-86d0dc2be33b",
+              "name": "rooms",
+              "value": "[   { \"id\": \"A\", \"type\": \"Senior\" },   { \"id\": \"B\", \"type\": \"Technical\" },   { \"id\": \"C\", \"type\": \"General\" } ]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "b9e41368-5c80-4571-83ab-db384360afa3",
+      "name": "Set - Super Day Inputs"
+    },
+    {
+      "parameters": {
+        "jsCode": "const candidates = $json.candidates;\nconst interviewers = $json.interviewers;\nconst rooms = $json.rooms;\n\nlet schedule = [];\n\ncandidates.forEach((candidate, index) => {\n  const interviewer = interviewers[index % interviewers.length];\n  const room = rooms[index % rooms.length];\n\n  schedule.push({\n    candidate: candidate.name,\n    interviewer: interviewer.name,\n    room: room.id,\n    round: \"R1\",\n    time: \"10:00\"\n  });\n\n  schedule.push({\n    candidate: candidate.name,\n    interviewer: interviewer.name,\n    room: room.id,\n    round: \"R2\",\n    time: \"11:00\"\n  });\n\n  schedule.push({\n    candidate: candidate.name,\n    interviewer: interviewer.name,\n    room: room.id,\n    round: \"R3\",\n    time: \"12:00\"\n  });\n});\n\nreturn [{ json: { schedule } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "bed74f23-cb7a-46c4-b0f3-40a9f011be11",
+      "name": "Code - Generate Schedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "const schedule = $json.schedule;\n\nlet conflicts = [];\n\nschedule.forEach(slot => {\n  if (\n    slot.candidate === \"Priya Sharma\" &&\n    slot.time === \"13:00\"\n  ) {\n    conflicts.push({\n      type: \"PRAYER_CONFLICT\",\n      message: \"Priya unavailable at 1 PM\"\n    });\n  }\n});\n\nreturn [\n  {\n    json: {\n      schedule,\n      conflicts,\n      valid: conflicts.length === 0\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a12f3106-77d1-4ef3-8790-1ab6fc4b8fbf",
+      "name": "Code - Validate Constraints"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1fd82295-5fb2-4508-9fe1-d5d6db460715",
+              "leftValue": "={{$json.valid}}",
+              "rightValue": "is true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "edebbef6-d24e-41a1-a944-c73c54c81e84",
+      "name": "IF - Is Schedule Valid"
+    },
+    {
+      "parameters": {
+        "jsCode": "const schedule = $json.schedule;\n\nreturn schedule.map(slot => ({\n  json: {\n    to: slot.candidate,\n    message: `Hi ${slot.candidate}, your ${slot.round} is scheduled at ${slot.time} with ${slot.interviewer} in Room ${slot.room}`\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "780461c1-1e33-4f22-82da-8a2adce1f54c",
+      "name": "Code - Prepare Notifications"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/send-notification",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1296,
+        -112
+      ],
+      "id": "5ada7b16-68af-4e97-bcf1-68f90e130cb8",
+      "name": "HTTP - Send Notification"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"status\": \"error\",\n  \"message\": \"Schedule has conflicts. Manual intervention required.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1072,
+        96
+      ],
+      "id": "fb81cf7e-1623-445f-a12b-f63bd5ae6101",
+      "name": "Set - Conflict Response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "interviewsync-start",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6c341e2a-95c3-40ba-8213-9507be396caa",
+      "name": "Webhook - Start Super Day",
+      "webhookId": "ab78f122-e0c4-4b28-8575-8647434287ae"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"success\",\n  \"data\": {{$json}}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1536,
+        -96
+      ],
+      "id": "548309e6-5466-4b9e-aa63-e85f23c210f1",
+      "name": "Respond - Return Schedule1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set - Super Day Inputs": {
+      "main": [
+        [
+          {
+            "node": "Code - Generate Schedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Generate Schedule": {
+      "main": [
+        [
+          {
+            "node": "Code - Validate Constraints",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Validate Constraints": {
+      "main": [
+        [
+          {
+            "node": "IF - Is Schedule Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Is Schedule Valid": {
+      "main": [
+        [
+          {
+            "node": "Code - Prepare Notifications",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Conflict Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Prepare Notifications": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Send Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond - Return Schedule1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Start Super Day": {
+      "main": [
+        [
+          {
+            "node": "Set - Super Day Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set - Conflict Response": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "aa86020c-f9da-45cd-89eb-6e5cba743bdb",
+  "meta": {
+    "instanceId": "4f2771526646639f25444e1e5c3ded7d66d915a9082f02fd03917caedda6ffa3"
+  },
+  "id": "zTebAnSKGNUjK9t2",
+  "tags": []
+}

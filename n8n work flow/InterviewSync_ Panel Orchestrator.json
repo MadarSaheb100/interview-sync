@@ -1,0 +1,335 @@
+{
+  "name": "InterviewSync: Panel Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Welcome to InterviewSync! 👋\n\nI can help you manage Super Day interview schedules.\n\nTry:\n• \"VP Rahul cancelled all slots after 12 PM\"\n• \"Room B projector broken\"\n• \"Candidate Sneha running 30 min late\"",
+        "options": {
+          "loadPreviousSession": "memory",
+          "showWelcomeScreen": true,
+          "getStarted": "Report a disruption or ask about the schedule",
+          "subtitle": "Real-time interview schedule management",
+          "title": "InterviewSync: Panel Orchestrator"
+        }
+      },
+      "id": "8f3d96f6-8e0d-4bb0-9fb7-7aa7f6de805b",
+      "name": "InterviewSync Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "546ddb1d-db5d-40b9-9f9d-cd78684d3e14"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "id": "2e365fcf-ff30-4cdd-80eb-391c5537272d",
+      "name": "Conversation Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are InterviewSync, an AI assistant for managing Super Day interview schedules.\n\nYour role:\n1. Analyze disruption reports (interviewer cancellations, room issues, candidate delays)\n2. Use \"Get Schedule Data\" tool to retrieve current schedule from the data table\n3. Identify affected candidates, interviewers, and rooms\n4. Propose intelligent solutions:\n   - Find backup interviewers with matching expertise and availability\n   - Reassign rooms when equipment fails\n   - Compress or shift time slots for late candidates\n5. Use \"Update Schedule\" tool to modify affected interview slots\n6. Use \"Send Email Notification\" to notify affected candidates/interviewers\n7. Use \"Send Slack Alert\" to notify the HR coordination team\n8. Return structured analysis with disruption type, affected parties, and actions taken\n\nAlways prioritize:\n- Candidate experience (minimize disruption to their day)\n- Interviewer expertise match (Backend Engineer → Engineering panel)\n- Hard constraints (flight times, prayer breaks, availability windows)\n\nBe proactive, clear, and solution-focused.",
+          "maxIterations": 15,
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "800d83fc-167d-498a-af73-8926ac5e5fa3",
+      "name": "Schedule Orchestrator Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        848,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "29980083-b837-4eb4-9d78-316e3a008d58",
+      "name": "OpenAI Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        592,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "returnAll": true
+      },
+      "id": "66056f6f-dfdf-4866-b3c2-146e6c30dbe8",
+      "name": "Get Schedule Data",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('candidateId', 'Candidate ID to update') }}",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('candidateIdValue', 'Candidate ID value') }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "interviewerId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('newInterviewerId', 'New interviewer ID') }}",
+            "roomId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('newRoomId', 'New room assignment') }}",
+            "startTime": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('newStartTime', 'New start time') }}",
+            "status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('status', 'Interview status') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "12e52431-014a-4b79-b362-7bb637c59da9",
+      "name": "Update Schedule",
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('recipientEmail', 'Email address of candidate or interviewer') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('emailSubject', 'Email subject line') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('emailBody', 'Email message content') }}",
+        "options": {}
+      },
+      "id": "0f94d261-b242-49a9-8d71-a80427388dd1",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        624
+      ],
+      "webhookId": "25c54fb3-8607-4f65-b6f8-2a20cc4f56f0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ZyG25CvwcwINvjeW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('slackMessage', 'Slack notification message') }}",
+        "otherOptions": {}
+      },
+      "id": "c368455e-b097-48cb-919e-2c97bf703652",
+      "name": "Send Slack Alert",
+      "type": "n8n-nodes-base.slackTool",
+      "typeVersion": 2.4,
+      "position": [
+        1104,
+        624
+      ],
+      "webhookId": "75aa2859-2ee3-418b-bebd-6fa7ccb2ab16"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": {
+          "disruptionType": "interviewer_unavailable",
+          "affectedCandidates": [
+            "C1",
+            "C3"
+          ],
+          "affectedInterviewers": [
+            "I1"
+          ],
+          "affectedRooms": [],
+          "proposedSolution": "Reassign interviews to backup interviewer I10",
+          "notificationNeeded": true,
+          "urgency": "high"
+        }
+      },
+      "id": "7504f0c0-dfa3-40c1-9e0c-88d3edcfe174",
+      "name": "Schedule Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const analysis = $input.first().json.output;\n\nconst urgencyEmoji = {\n  high: '🚨',\n  medium: '⚠️',\n  low: 'ℹ️'\n};\n\nconst typeLabels = {\n  interviewer_unavailable: 'Interviewer Unavailable',\n  room_issue: 'Room Issue',\n  candidate_delay: 'Candidate Delay',\n  other: 'Schedule Change'\n};\n\nlet response = `${urgencyEmoji[analysis.urgency] || '📋'} **${typeLabels[analysis.disruptionType] || 'Disruption Detected'}**\\n\\n`;\n\nif (analysis.affectedCandidates?.length > 0) {\n  response += `**Affected Candidates:** ${analysis.affectedCandidates.join(', ')}\\n`;\n}\n\nif (analysis.affectedInterviewers?.length > 0) {\n  response += `**Affected Interviewers:** ${analysis.affectedInterviewers.join(', ')}\\n`;\n}\n\nif (analysis.affectedRooms?.length > 0) {\n  response += `**Affected Rooms:** ${analysis.affectedRooms.join(', ')}\\n`;\n}\n\nresponse += `\\n**Solution:**\\n${analysis.proposedSolution}\\n\\n`;\n\nif (analysis.notificationNeeded) {\n  response += '✅ Notifications sent to all affected parties.\\n';\n}\n\nresponse += '\\n_Schedule updated successfully. Is there anything else you need help with?_';\n\nreturn [{ json: { output: response } }];"
+      },
+      "id": "c0da8d90-8558-4b4b-9622-fdb1bc5cb97a",
+      "name": "Format Chat Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "InterviewSync Chat": {
+      "main": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "InterviewSync Chat",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Orchestrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Schedule Data": {
+      "ai_tool": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Schedule": {
+      "ai_tool": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Notification": {
+      "ai_tool": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Slack Alert": {
+      "ai_tool": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Schedule Orchestrator Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7c26f078-9b6e-4067-818e-01c8df514500",
+  "meta": {
+    "instanceId": "4f2771526646639f25444e1e5c3ded7d66d915a9082f02fd03917caedda6ffa3"
+  },
+  "id": "zaoj2Uu2sgnezPNE",
+  "tags": []
+}

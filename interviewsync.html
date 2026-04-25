@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InterviewSync — Panel Orchestrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:   #0D1B2A;
+  --navy2:  #1A2B3C;
+  --navy3:  #243447;
+  --blue:   #2563EB;
+  --blue-l: #EFF6FF;
+  --blue-m: #BFDBFE;
+  --teal:   #0D9488;
+  --teal-l: #F0FDFA;
+  --green:  #16A34A;
+  --grn-l:  #F0FDF4;
+  --grn-m:  #BBF7D0;
+  --amber:  #D97706;
+  --amb-l:  #FFFBEB;
+  --amb-m:  #FDE68A;
+  --red:    #DC2626;
+  --red-l:  #FEF2F2;
+  --red-m:  #FECACA;
+  --purple: #7C3AED;
+  --pur-l:  #F5F3FF;
+  --pur-m:  #DDD6FE;
+  --dark:   #0F172A;
+  --mid:    #64748B;
+  --light:  #94A3B8;
+  --border: #E2E8F0;
+  --bg:     #F8FAFC;
+  --white:  #FFFFFF;
+  --font:   'Sora', sans-serif;
+  --mono:   'DM Mono', monospace;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.05);
+}
+
+body { font-family: var(--font); background: var(--bg); color: var(--dark); font-size: 14px; line-height: 1.5; overflow: hidden; height: 100vh; display: flex; }
+
+/* ── Sidebar ────────────────────────────────────────────────────── */
+#sidebar {
+  width: 220px; min-width: 220px; background: var(--navy); display: flex;
+  flex-direction: column; padding: 0; overflow-y: auto; z-index: 100;
+}
+.logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--navy3); }
+.logo-title { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -.3px; }
+.logo-sub { font-size: 10px; color: #64748B; margin-top: 2px; font-family: var(--mono); }
+
+.nav-section { padding: 12px 10px 4px; }
+.nav-label { font-size: 9px; font-weight: 600; color: #475569; letter-spacing: 1.2px; text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+  border-radius: 7px; cursor: pointer; transition: all .15s;
+  color: #94A3B8; font-size: 12.5px; font-weight: 400; margin-bottom: 1px;
+  position: relative;
+}
+.nav-item:hover { background: var(--navy3); color: #CBD5E1; }
+.nav-item.active { background: var(--blue); color: #fff; font-weight: 600; }
+.nav-item .icon { width: 16px; text-align: center; font-size: 13px; flex-shrink: 0; }
+.nav-item .badge { margin-left: auto; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 9px; }
+.nav-item .badge.green { background: var(--green); }
+
+.disruption-btn {
+  margin: 12px 10px; background: var(--red); color: #fff; border: none;
+  border-radius: 8px; padding: 10px 12px; cursor: pointer; font-family: var(--font);
+  font-size: 12px; font-weight: 700; width: calc(100% - 20px);
+  display: flex; align-items: center; gap: 7px; transition: all .15s;
+}
+.disruption-btn:hover { background: #B91C1C; transform: translateY(-1px); }
+.disruption-btn .pulse { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse 1.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+
+.day-status { margin: auto 10px 10px; padding: 10px; background: var(--navy3); border-radius: 8px; }
+.day-status-label { font-size: 9px; color: #64748B; text-transform: uppercase; letter-spacing: 1px; }
+.day-status-val { font-size: 13px; color: #fff; font-weight: 600; margin-top: 2px; }
+.day-dot { display: inline-block; width: 7px; height: 7px; background: var(--green); border-radius: 50%; margin-right: 5px; animation: pulse 1.4s infinite; }
+
+/* ── Main Content ───────────────────────────────────────────────── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.topbar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 0 24px; height: 54px; display: flex; align-items: center;
+  gap: 12px; flex-shrink: 0; z-index: 50;
+}
+.topbar-title { font-size: 16px; font-weight: 700; color: var(--dark); }
+.topbar-sub { font-size: 12px; color: var(--mid); margin-left: 4px; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; background: var(--blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; }
+.status-pill { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.pill-green { background: var(--grn-l); color: var(--green); border: 1px solid var(--grn-m); }
+.pill-red   { background: var(--red-l); color: var(--red);   border: 1px solid var(--red-m); }
+.pill-amber { background: var(--amb-l); color: var(--amber); border: 1px solid var(--amb-m); }
+.pill-blue  { background: var(--blue-l);color: var(--blue);  border: 1px solid var(--blue-m); }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ── Screens ────────────────────────────────────────────────────── */
+.screen { display: none; animation: fadeIn .2s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── Cards ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--white); border-radius: var(--radius);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+  padding: 20px;
+}
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--dark); }
+.card-sub { font-size: 12px; color: var(--mid); margin-top: 2px; }
+
+/* ── Grid helpers ───────────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; }
+
+/* ── KPI Cards ──────────────────────────────────────────────────── */
+.kpi { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 18px; }
+.kpi-label { font-size: 11px; color: var(--mid); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+.kpi-val { font-size: 26px; font-weight: 800; color: var(--dark); margin: 4px 0 2px; }
+.kpi-sub { font-size: 11px; color: var(--light); }
+.kpi-bar { height: 3px; border-radius: 2px; margin-top: 10px; background: var(--border); overflow: hidden; }
+.kpi-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+/* ── Tables ─────────────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+thead th { font-size: 11px; font-weight: 600; color: var(--mid); text-transform: uppercase; letter-spacing: .5px; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: #F8FAFC; }
+tbody td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.td-name { font-weight: 600; color: var(--dark); }
+.td-note { font-size: 11px; color: var(--amber); background: var(--amb-l); padding: 2px 7px; border-radius: 4px; font-weight: 500; }
+
+/* ── Role badges ────────────────────────────────────────────────── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; }
+.badge-be   { background: var(--blue-l); color: var(--blue); }
+.badge-pd   { background: var(--pur-l);  color: var(--purple); }
+.badge-da   { background: var(--teal-l); color: var(--teal); }
+.badge-ok   { background: var(--grn-l);  color: var(--green); }
+.badge-warn { background: var(--amb-l);  color: var(--amber); }
+.badge-err  { background: var(--red-l);  color: var(--red); }
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-primary:hover { background: #1D4ED8; transform: translateY(-1px); }
+.btn-danger  { background: var(--red);  color: #fff; }
+.btn-danger:hover  { background: #B91C1C; }
+.btn-outline { background: var(--white); color: var(--dark); border: 1.5px solid var(--border); }
+.btn-outline:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); }
+.btn-green  { background: var(--green); color: #fff; }
+.btn-amber  { background: var(--amber); color: #fff; }
+
+/* ── Timeline ───────────────────────────────────────────────────── */
+.timeline-wrap { overflow-x: auto; }
+.timeline-grid { display: grid; }
+.t-header { display: flex; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; }
+.t-label-col { width: 130px; flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--mid); padding: 0 8px; }
+.t-hours { flex: 1; display: flex; position: relative; }
+.t-hour { flex: 1; font-size: 10px; color: var(--light); font-family: var(--mono); text-align: left; padding-left: 2px; }
+.t-row { display: flex; align-items: stretch; min-height: 70px; border-bottom: 1px solid #F1F5F9; padding: 6px 0; }
+.t-name { width: 130px; flex-shrink: 0; padding: 4px 8px; }
+.t-name-main { font-size: 12px; font-weight: 600; color: var(--dark); }
+.t-name-role { font-size: 10px; color: var(--mid); margin-top: 1px; }
+.t-slots { flex: 1; position: relative; }
+.t-slot {
+  position: absolute; top: 4px; height: calc(100% - 8px);
+  border-radius: 6px; display: flex; flex-direction: column;
+  justify-content: center; padding: 0 8px; cursor: pointer;
+  transition: all .15s; border: 1.5px solid transparent;
+  overflow: hidden;
+}
+.t-slot:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.12); z-index: 10; }
+.t-slot-label { font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-slot-iv { font-size: 9px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-slot-room { font-size: 9px; opacity: .65; }
+
+/* hard constraint markers */
+.t-hard-stop { position: absolute; top: 0; width: 2px; height: 100%; z-index: 5; }
+.t-block { position: absolute; top: 4px; height: calc(100% - 8px); border-radius: 4px; border: 1.5px dashed; opacity: .35; z-index: 4; display: flex; align-items: center; justify-content: center; }
+.t-block-label { font-size: 9px; font-weight: 600; writing-mode: vertical-rl; text-orientation: mixed; }
+
+/* ── Modal overlay ──────────────────────────────────────────────── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+.overlay.open { display: flex; }
+.modal { background: var(--white); border-radius: 14px; padding: 28px; width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,.2); animation: slideUp .2s ease; }
+@keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.modal-title { font-size: 18px; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+.modal-sub   { font-size: 13px; color: var(--mid); margin-bottom: 20px; }
+.modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; color: var(--mid); font-size: 18px; }
+
+/* ── Form elements ──────────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--mid); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .5px; }
+.form-input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 7px; font-family: var(--font); font-size: 13px; color: var(--dark); outline: none; transition: border .15s; background: var(--white); }
+.form-input:focus { border-color: var(--blue); }
+.radio-group { display: flex; flex-direction: column; gap: 8px; }
+.radio-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 7px; border: 1.5px solid var(--border); cursor: pointer; transition: all .15s; }
+.radio-item:hover { border-color: var(--blue); background: var(--blue-l); }
+.radio-item.selected { border-color: var(--red); background: var(--red-l); }
+.radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; transition: all .15s; }
+.radio-item.selected .radio-dot { border-color: var(--red); background: var(--red); box-shadow: inset 0 0 0 3px #fff; }
+.radio-text { font-size: 13px; font-weight: 500; color: var(--dark); }
+
+/* ── Agent reasoning ────────────────────────────────────────────── */
+.agent-step {
+  display: flex; gap: 14px; padding: 14px 16px; border-radius: 9px;
+  background: var(--bg); border: 1px solid var(--border);
+  margin-bottom: 10px; opacity: 0; transform: translateX(-12px);
+  transition: all .4s ease;
+}
+.agent-step.visible { opacity: 1; transform: translateX(0); }
+.agent-step.done { background: var(--grn-l); border-color: var(--grn-m); }
+.agent-step.active { background: var(--amb-l); border-color: var(--amb-m); animation: stepPulse 1.2s infinite; }
+.agent-step.blocked { background: var(--red-l); border-color: var(--red-m); }
+@keyframes stepPulse { 0%,100%{border-color:var(--amb-m)} 50%{border-color:var(--amber)} }
+.step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; background: var(--border); color: var(--mid); }
+.agent-step.done .step-num { background: var(--green); color: #fff; }
+.agent-step.active .step-num { background: var(--amber); color: #fff; }
+.agent-step.blocked .step-num { background: var(--red); color: #fff; }
+.step-body { flex: 1; }
+.step-label { font-size: 13px; font-weight: 700; color: var(--dark); }
+.step-detail { font-size: 12px; color: var(--mid); margin-top: 3px; line-height: 1.5; }
+.step-result { font-size: 11px; font-family: var(--mono); color: var(--green); margin-top: 5px; }
+.step-status { margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 5px; flex-shrink: 0; align-self: flex-start; }
+
+/* ── Section title ──────────────────────────────────────────────── */
+.section-title { font-size: 11px; font-weight: 700; color: var(--mid); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Page header ────────────────────────────────────────────────── */
+.page-header { margin-bottom: 20px; }
+.page-header h1 { font-size: 22px; font-weight: 800; color: var(--dark); }
+.page-header p  { font-size: 13px; color: var(--mid); margin-top: 4px; }
+
+/* ── Notification card ──────────────────────────────────────────── */
+.notif-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; }
+.notif-card.failed { border-color: var(--red-m); background: var(--red-l); }
+.notif-to { font-size: 13px; font-weight: 700; color: var(--dark); }
+.notif-type { font-size: 11px; color: var(--mid); }
+.notif-body { font-size: 12px; color: var(--dark); line-height: 1.6; margin: 10px 0; padding: 10px; background: var(--bg); border-radius: 6px; border-left: 3px solid var(--blue); }
+.notif-card.failed .notif-body { border-left-color: var(--red); }
+
+/* ── Edge case alert ────────────────────────────────────────────── */
+.ec-alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+.ec-alert.red   { background: var(--red-l);  border-left: 4px solid var(--red);   color: #991B1B; }
+.ec-alert.amber { background: var(--amb-l);  border-left: 4px solid var(--amber); color: #92400E; }
+.ec-alert.green { background: var(--grn-l);  border-left: 4px solid var(--green); color: #14532D; }
+.ec-alert.blue  { background: var(--blue-l); border-left: 4px solid var(--blue);  color: #1E3A8A; }
+.ec-alert.purple{ background: var(--pur-l);  border-left: 4px solid var(--purple);color: #4C1D95; }
+.ec-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.ec-title { font-weight: 700; font-size: 13px; }
+.ec-body  { font-size: 12px; margin-top: 3px; line-height: 1.6; }
+
+/* ── Compare (before/after) ─────────────────────────────────────── */
+.compare-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.compare-cell { padding: 10px 14px; border-radius: 7px; font-size: 12px; line-height: 1.5; }
+.compare-was  { background: var(--red-l);  border: 1.5px solid var(--red-m);  }
+.compare-now  { background: var(--grn-l);  border: 1.5px solid var(--grn-m);  }
+.compare-unchanged { background: var(--bg); border: 1px solid var(--border); }
+.compare-arrow { font-size: 18px; color: var(--mid); text-align: center; }
+.compare-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+
+/* ── Room status ────────────────────────────────────────────────── */
+.room-card { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.room-header { padding: 12px 16px; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+.room-slots { padding: 8px; }
+.room-slot { padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
+
+/* ── Progress steps ─────────────────────────────────────────────── */
+.step-track { display: flex; align-items: center; gap: 4px; margin-bottom: 24px; }
+.step-item { display: flex; align-items: center; gap: 6px; flex: 1; }
+.step-circle { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.step-active   { background: var(--blue);   color: #fff; }
+.step-done     { background: var(--green);  color: #fff; }
+.step-inactive { background: var(--border); color: var(--mid); }
+.step-line { flex: 1; height: 2px; background: var(--border); }
+.step-line.done { background: var(--green); }
+.step-text { font-size: 11px; font-weight: 600; color: var(--mid); }
+.step-text.active { color: var(--blue); }
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+
+/* ── Divider ────────────────────────────────────────────────────── */
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+/* ── Tooltip ────────────────────────────────────────────────────── */
+.tooltip { position: relative; }
+.tooltip-text { display: none; position: absolute; background: var(--navy); color: #fff; font-size: 11px; padding: 5px 9px; border-radius: 5px; bottom: calc(100% + 5px); left: 50%; transform: translateX(-50%); white-space: nowrap; z-index: 500; }
+.tooltip:hover .tooltip-text { display: block; }
+
+/* ── Validation row ─────────────────────────────────────────────── */
+.val-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; }
+.val-row.pass { background: var(--grn-l); color: #14532D; }
+.val-row.fail { background: var(--red-l); color: #991B1B; }
+.val-icon { flex-shrink: 0; font-size: 14px; }
+.val-text { flex: 1; }
+.val-result { font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+
+/* ── Hierarchy list ─────────────────────────────────────────────── */
+.hier-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border); margin-bottom: 7px; }
+.hier-num { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.hier-label { font-size: 12px; font-weight: 600; color: var(--dark); }
+.hier-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+
+/* ── Candidate detail strip ─────────────────────────────────────── */
+.cand-strip { display: flex; align-items: center; padding: 10px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--white); margin-bottom: 8px; gap: 12px; }
+.cand-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ───────────────────────────────────────────────────── -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-title">InterviewSync</div>
+    <div class="logo-sub">Panel Orchestrator · v1.0</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Core Flow</div>
+    <div class="nav-item active" onclick="show('s1')"><span class="icon">📋</span> S1 · Setup & Ingestion</div>
+    <div class="nav-item" onclick="show('s2')"><span class="icon">📅</span> S2 · Master Dashboard</div>
+    <div class="nav-item" onclick="show('s6')"><span class="icon">⚠️</span> S6 · Report Disruption</div>
+    <div class="nav-item" onclick="show('s7')"><span class="icon">🤖</span> S7 · Agent Replan</div>
+    <div class="nav-item" onclick="show('s8')"><span class="icon">🔀</span> S8 · Before vs After</div>
+    <div class="nav-item" onclick="show('s9')"><span class="icon">📨</span> S9 · Notifications</div>
+    <div class="nav-item" onclick="show('s10')"><span class="icon">📊</span> S10 · KPIs Summary</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Edge Cases</div>
+    <div class="nav-item" onclick="show('s11')"><span class="icon">⏱</span> S11 · Late / Compress</div>
+    <div class="nav-item" onclick="show('s12')"><span class="icon">🚫</span> S12 · No-Show State</div>
+    <div class="nav-item" onclick="show('s13')"><span class="icon">🕐</span> S13 · Availability Gaps</div>
+    <div class="nav-item" onclick="show('s14')"><span class="icon">🔴</span> S14 · Dual Unavailable</div>
+    <div class="nav-item" onclick="show('s15')"><span class="icon">🏢</span> S15 · Room Stagger</div>
+    <div class="nav-item" onclick="show('s16')"><span class="icon">🔒</span> S16 · System Safeguards</div>
+  </div>
+
+  <button class="disruption-btn" onclick="openDisruption()">
+    <span class="pulse"></span> Report Disruption
+  </button>
+
+  <div class="day-status">
+    <div class="day-status-label">Day Status</div>
+    <div class="day-status-val"><span class="day-dot"></span>In Progress</div>
+  </div>
+</div>
+
+<!-- ── Main ──────────────────────────────────────────────────────── -->
+<div id="main">
+  <div class="topbar">
+    <div>
+      <span class="topbar-title" id="topbar-title">S1 · Setup & Data Ingestion</span>
+      <span class="topbar-sub" id="topbar-sub">— NovaBuild Super Day, March 29 2026</span>
+    </div>
+    <div class="topbar-right">
+      <span class="status-pill pill-green">8 Candidates</span>
+      <span class="status-pill pill-blue">12 Interviewers</span>
+      <span class="status-pill pill-amber">1 Disruption</span>
+      <div class="avatar">AD</div>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S1 — Setup & Data Ingestion
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s1" class="screen active">
+    <div class="page-header">
+      <h1>Super Day Setup</h1>
+      <p>Aditi configures the day — candidates, interviewers, rooms. Agent validates constraints before generating the schedule.</p>
+    </div>
+
+    <!-- Step progress -->
+    <div class="step-track">
+      <div class="step-item"><div class="step-circle step-done">✓</div><div style="margin-left:6px"><div class="step-text active">Candidates</div></div></div>
+      <div class="step-line done"></div>
+      <div class="step-item"><div class="step-circle step-done">✓</div><div style="margin-left:6px"><div class="step-text active">Interviewers</div></div></div>
+      <div class="step-line done"></div>
+      <div class="step-item"><div class="step-circle step-done">✓</div><div style="margin-left:6px"><div class="step-text active">Rooms</div></div></div>
+      <div class="step-line"></div>
+      <div class="step-item"><div class="step-circle step-active">4</div><div style="margin-left:6px"><div class="step-text active">Generate</div></div></div>
+    </div>
+
+    <div class="grid-2" style="gap:20px">
+      <!-- Candidate table -->
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header">
+          <div><div class="card-title">Candidate Roster</div><div class="card-sub">8 candidates · 3 roles · constraints validated</div></div>
+          <button class="btn btn-outline" style="font-size:12px">+ Add Candidate</button>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Available Window</th><th>Special Constraints</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>C1</td><td class="td-name">Priya Sharma</td><td><span class="badge badge-be">Backend Eng.</span></td><td>10:00 AM – 4:00 PM</td><td><span class="td-note">⛪ Prayer break 1:00–1:30 PM (hard block)</span></td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C2</td><td class="td-name">Arjun Mehta</td><td><span class="badge badge-be">Backend Eng.</span></td><td>10:00 AM – 5:00 PM</td><td>—</td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C3</td><td class="td-name">Sneha Iyer</td><td><span class="badge badge-pd">Product Design</span></td><td>10:30 AM – 3:30 PM</td><td><span class="td-note">✈ Hard stop 3:30 PM (flight)</span></td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C4</td><td class="td-name">Rohan Das</td><td><span class="badge badge-pd">Product Design</span></td><td>11:00 AM – 5:00 PM</td><td>—</td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C5</td><td class="td-name">Kavya Nair</td><td><span class="badge badge-da">Data Analyst</span></td><td>10:00 AM – 4:00 PM</td><td><span class="td-note">🚌 Prefers back-to-back (long travel)</span></td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C6</td><td class="td-name">Amir Khan</td><td><span class="badge badge-da">Data Analyst</span></td><td>10:00 AM – 5:00 PM</td><td>—</td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C7</td><td class="td-name">Tanya Gupta</td><td><span class="badge badge-be">Backend Eng.</span></td><td>11:00 AM – 5:00 PM</td><td>—</td><td><span class="badge badge-ok">Ready</span></td></tr>
+            <tr><td>C8</td><td class="td-name">Vikram Joshi</td><td><span class="badge badge-da">Data Analyst</span></td><td>10:00 AM – 3:00 PM</td><td><span class="td-note">🕐 Hard stop 3:00 PM</span></td><td><span class="badge badge-ok">Ready</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Interviewers -->
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Interviewer Panel</div><div class="card-sub">12 interviewers · 3 depts</div></div></div>
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Role</th><th>Window</th><th>Can Interview</th></tr></thead>
+          <tbody>
+            <tr><td>I1</td><td class="td-name">Rahul Verma</td><td>VP Eng.</td><td style="font-size:11px;color:var(--mid)">10AM–2PM</td><td><span class="badge badge-be">Backend</span></td></tr>
+            <tr><td>I2</td><td class="td-name">Meera Patel</td><td>Sr. Engineer</td><td style="font-size:11px;color:var(--mid)">10AM–5PM</td><td><span class="badge badge-be">Backend</span></td></tr>
+            <tr><td>I3</td><td class="td-name">Siddharth Rao</td><td>Tech Lead</td><td style="font-size:11px;color:var(--mid)"><span class="badge badge-warn" style="font-size:10px">11AM–4PM</span></td><td><span class="badge badge-be">Backend</span> <span class="badge badge-da">Data</span></td></tr>
+            <tr><td>I4</td><td class="td-name">Ananya Joshi</td><td>Design Lead</td><td style="font-size:11px;color:var(--mid)">10AM–5PM</td><td><span class="badge badge-pd">Design</span></td></tr>
+            <tr><td>I5</td><td class="td-name">Karan Singh</td><td>Sr. Designer</td><td style="font-size:11px;color:var(--mid)">10:30AM–3:30PM</td><td><span class="badge badge-pd">Design</span></td></tr>
+            <tr><td>I6</td><td class="td-name">Neha Kulkarni</td><td>PM</td><td style="font-size:11px;color:var(--mid)">10AM–5PM</td><td><span class="badge badge-pd">Design</span> <span class="badge badge-da">Data</span></td></tr>
+            <tr><td>I7</td><td class="td-name">Deepak Menon</td><td>Data Lead</td><td style="font-size:11px;color:var(--mid)">10AM–4PM</td><td><span class="badge badge-da">Data</span></td></tr>
+            <tr><td>I8</td><td class="td-name">Ritu Agarwal</td><td>Sr. Analyst</td><td style="font-size:11px;color:var(--mid)">11AM–5PM</td><td><span class="badge badge-da">Data</span></td></tr>
+            <tr><td>I9</td><td class="td-name">Pooja Reddy</td><td>HR Manager</td><td style="font-size:11px;color:var(--mid)">10AM–5PM</td><td><span class="badge badge-ok">All (Culture)</span></td></tr>
+            <tr><td>I10</td><td class="td-name">Amit Saharan</td><td>Director Eng.</td><td style="font-size:11px;color:var(--mid)"><span class="badge badge-warn" style="font-size:10px">2PM–5PM only</span></td><td><span class="badge badge-be">Backend (Backup)</span></td></tr>
+            <tr><td>I11</td><td class="td-name">Farhan Sheikh</td><td>UX Researcher</td><td style="font-size:11px;color:var(--mid)">10AM–3PM</td><td><span class="badge badge-pd">Design (Backup)</span></td></tr>
+            <tr><td>I12</td><td class="td-name">Lisa Thomas</td><td>Chief of Staff</td><td style="font-size:11px;color:var(--mid)">10AM–5PM</td><td><span class="badge badge-ok">All (Culture)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Rooms -->
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">Room Assignments</div><div class="card-sub">3 rooms · purposes assigned</div></div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <div style="padding:14px;background:var(--pur-l);border-radius:8px;border-left:4px solid var(--purple)">
+            <div style="font-weight:700;font-size:13px">Room A — Boardroom</div>
+            <div style="font-size:12px;color:var(--mid);margin-top:2px">Senior / VP-level interviews only</div>
+          </div>
+          <div style="padding:14px;background:var(--blue-l);border-radius:8px;border-left:4px solid var(--blue)">
+            <div style="font-weight:700;font-size:13px">Room B — Conference Room 2</div>
+            <div style="font-size:12px;color:var(--mid);margin-top:2px">Technical rounds · has projector</div>
+          </div>
+          <div style="padding:14px;background:var(--teal-l);border-radius:8px;border-left:4px solid var(--teal)">
+            <div style="font-weight:700;font-size:13px">Room C — Conference Room 3</div>
+            <div style="font-size:12px;color:var(--mid);margin-top:2px">Design rounds + Culture Fit</div>
+          </div>
+        </div>
+        <div class="ec-alert amber">
+          <span class="ec-icon">⚠</span>
+          <div><div class="ec-title">Constraint pre-validation</div><div class="ec-body">Agent checks: 3 Backend Eng. candidates → need 3 separate rooms for simultaneous R1 slots, but only Room A & B are Technical-approved. Agent staggers 10 AM Backend slots to avoid triple overlap.</div></div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-primary" style="width:100%" onclick="show('s2')">🚀 Generate Optimized Schedule →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S2 — Master Dashboard / Timeline
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s2" class="screen">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Master Dashboard</h1><p>Live Super Day timeline · click any slot for details · constraints enforced</p></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="status-pill pill-green">0 Conflicts</span>
+        <button class="btn btn-danger" onclick="openDisruption()">⚠ Report Disruption</button>
+      </div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="grid-5" style="margin-bottom:20px">
+      <div class="kpi"><div class="kpi-label">Candidates</div><div class="kpi-val">8</div><div class="kpi-sub">3 roles</div><div class="kpi-bar"><div class="kpi-fill" style="width:100%;background:var(--blue)"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Slots Scheduled</div><div class="kpi-val">24</div><div class="kpi-sub">All 3 rounds each</div><div class="kpi-bar"><div class="kpi-fill" style="width:100%;background:var(--green)"></div></div></div>
+      <div class="kpi"><div class="kpi-label">In Progress</div><div class="kpi-val">3</div><div class="kpi-sub">Active right now</div><div class="kpi-bar"><div class="kpi-fill" style="width:37%;background:var(--amber)"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Disruptions</div><div class="kpi-val" style="color:var(--amber)">1</div><div class="kpi-sub">Auto-resolved</div><div class="kpi-bar"><div class="kpi-fill" style="width:12%;background:var(--red)"></div></div></div>
+      <div class="kpi"><div class="kpi-label">Completion</div><div class="kpi-val" style="color:var(--green)">62%</div><div class="kpi-sub">15/24 rounds done</div><div class="kpi-bar"><div class="kpi-fill" style="width:62%;background:var(--green)"></div></div></div>
+    </div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:600;color:var(--mid)">Legend:</span>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:var(--blue-l);border:1.5px solid var(--blue);border-radius:3px"></div><span style="font-size:11px;color:var(--mid)">Backend Eng.</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:var(--pur-l);border:1.5px solid var(--purple);border-radius:3px"></div><span style="font-size:11px;color:var(--mid)">Product Design</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:var(--teal-l);border:1.5px solid var(--teal);border-radius:3px"></div><span style="font-size:11px;color:var(--mid)">Data Analyst</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;background:repeating-linear-gradient(45deg,var(--pur-l),var(--pur-l) 2px,transparent 2px,transparent 5px);border:1.5px dashed var(--purple);border-radius:3px"></div><span style="font-size:11px;color:var(--mid)">Prayer block</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:3px;height:14px;background:var(--red);border-radius:1px"></div><span style="font-size:11px;color:var(--mid)">Hard stop</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:3px;height:14px;background:var(--amber);border-radius:1px"></div><span style="font-size:11px;color:var(--mid)">Hard stop (flight)</span></div>
+    </div>
+
+    <!-- Timeline card -->
+    <div class="card" style="padding:16px;overflow-x:auto">
+      <div style="min-width:900px">
+        <!-- Hour header -->
+        <div style="display:flex;margin-left:130px;margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:6px">
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">10:00</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">11:00</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">12:00</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">1:00 PM</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">2:00 PM</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">3:00 PM</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">4:00 PM</div>
+          <div style="flex:1;font-size:10px;font-family:var(--mono);color:var(--light)">5:00 PM</div>
+        </div>
+        <!-- Rows -->
+        <div id="timeline-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S6 — Report Disruption Modal trigger screen
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s6" class="screen">
+    <div class="page-header"><h1>Report a Disruption</h1><p>Trigger the agentic replanning engine. The agent will automatically resolve and notify all affected parties.</p></div>
+    <div style="max-width:560px">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:4px">Disruption Type</div>
+        <div class="card-sub" style="margin-bottom:16px">Select what happened and who is affected</div>
+        <div class="radio-group" id="disruption-type">
+          <div class="radio-item selected" onclick="selectDisruption(this,'interviewer')"><div class="radio-dot"></div><div class="radio-text">🧑‍💼 Interviewer Cancelled</div></div>
+          <div class="radio-item" onclick="selectDisruption(this,'room')"><div class="radio-dot"></div><div class="radio-text">🏢 Room Unavailable / Equipment Broken</div></div>
+          <div class="radio-item" onclick="selectDisruption(this,'late')"><div class="radio-dot"></div><div class="radio-text">⏱ Candidate Running Late</div></div>
+          <div class="radio-item" onclick="selectDisruption(this,'noshow')"><div class="radio-dot"></div><div class="radio-text">🚫 Candidate No-Show</div></div>
+        </div>
+        <div class="divider"></div>
+        <div class="form-group">
+          <label class="form-label">Who is affected?</label>
+          <select class="form-input">
+            <option>Rahul Verma — VP Engineering (all slots after 12 PM)</option>
+            <option>Siddharth Rao — Tech Lead</option>
+            <option>Sneha Iyer — Candidate C3</option>
+            <option>Vikram Joshi — Candidate C8</option>
+            <option>Room B — Projector broken</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Additional notes (optional)</label>
+          <textarea class="form-input" rows="3" placeholder="e.g. Emergency board call. Available again at 4 PM."></textarea>
+        </div>
+        <div class="ec-alert amber" style="margin-bottom:16px">
+          <span class="ec-icon">⚡</span>
+          <div><div class="ec-title">Agent will automatically:</div><div class="ec-body">Identify affected slots → check backup availability by dept + seniority → swap slots → verify room conflicts → draft notifications. You approve before anything is sent.</div></div>
+        </div>
+        <div class="ec-alert red" style="margin-bottom:16px">
+          <span class="ec-icon">🛡</span>
+          <div><div class="ec-title">Edge case: If no backup exists</div><div class="ec-body">Agent will NOT silently fail. It surfaces the exact constraint blocking resolution and offers Aditi manual options: reschedule to tomorrow, run 2-round day, or escalate to hiring manager.</div></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-outline" style="flex:1">Cancel</button>
+          <button class="btn btn-danger" style="flex:2" onclick="triggerReplan()">🤖 Let Agent Replan →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S7 — Agent Reasoning & Live Replan
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s7" class="screen">
+    <div style="background:var(--amb-l);border-bottom:3px solid var(--amber);padding:12px 0;margin:-24px -24px 20px;padding-left:24px;padding-right:24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:800;font-size:14px;color:#92400E">🤖 Agent Replanning in Progress</div>
+        <div style="font-size:12px;color:#92400E;margin-top:2px">Disruption: VP Rahul Verma cancelled all slots after 12 PM — reported 11:45 AM</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="agent-timer" style="font-family:var(--mono);font-size:13px;font-weight:700;color:#92400E">00:00</span>
+        <span class="status-pill pill-amber" id="agent-status-pill">Running...</span>
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap:20px;align-items:start">
+      <!-- Reasoning chain -->
+      <div>
+        <div class="section-title">Agent Reasoning Chain</div>
+        <div id="agent-steps">
+          <div class="agent-step" id="step1"><div class="step-num">1</div><div class="step-body"><div class="step-label">Disruption Detected</div><div class="step-detail">VP Rahul Verma · all slots after 12:00 PM cancelled at 11:45 AM</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step2"><div class="step-num">2</div><div class="step-body"><div class="step-label">Identify Affected Candidates</div><div class="step-detail">Scanning schedule for Rahul's post-12PM assignments...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step3"><div class="step-num">3</div><div class="step-body"><div class="step-label">Constraint Check for Backup</div><div class="step-detail">Backup must match: Engineering dept · seniority ≥ Tech Lead · available post-12PM</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step4"><div class="step-num">4</div><div class="step-body"><div class="step-label">Backup Interviewer Match</div><div class="step-detail">Ranking eligible interviewers by department relevance and seniority...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step5"><div class="step-num">5</div><div class="step-body"><div class="step-label">Seniority Validation</div><div class="step-detail">Checking: does backup seniority match original? Flagging if lower-seniority swap needed...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step6"><div class="step-num">6</div><div class="step-body"><div class="step-label">Slot Swap Execution</div><div class="step-detail">Reassigning candidate slots to backup interviewers, preserving candidate constraints...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step7"><div class="step-num">7</div><div class="step-body"><div class="step-label">Room Conflict Check</div><div class="step-detail">Verifying new time slots against full room booking grid...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+          <div class="agent-step" id="step8"><div class="step-num">8</div><div class="step-body"><div class="step-label">Draft Notifications</div><div class="step-detail">Generating personalised messages for all affected candidates and interviewers...</div><div class="step-result"></div></div><span class="step-status"></span></div>
+        </div>
+        <div id="replan-complete" style="display:none">
+          <div class="ec-alert green" style="margin-top:12px">
+            <span class="ec-icon">✅</span>
+            <div><div class="ec-title">Replan complete — 1 min 42 sec</div><div class="ec-body">3 slots reassigned. 5 notifications drafted. 0 conflicts. Ready for Aditi's approval.</div></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <button class="btn btn-outline" style="flex:1" onclick="show('s8')">View Before vs After</button>
+            <button class="btn btn-green" style="flex:2" onclick="show('s9')">Review & Send Notifications →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Updated schedule preview -->
+      <div>
+        <div class="section-title">Reshuffled Schedule Preview</div>
+        <div id="replan-preview">
+          <div style="text-align:center;padding:40px;color:var(--light);font-size:13px">⏳ Agent working...</div>
+        </div>
+        <div id="edge-case-panel" style="display:none;margin-top:12px">
+          <div class="section-title">Edge Cases Handled</div>
+          <div class="ec-alert red">
+            <span class="ec-icon">🕐</span>
+            <div><div class="ec-title">12 PM–2 PM Dead Zone</div><div class="ec-body">No Director-level Eng. available 12–2 PM. Agent used Siddharth (Tech Lead) for 1:10 PM slot with seniority warning to Aditi.</div></div>
+          </div>
+          <div class="ec-alert amber">
+            <span class="ec-icon">⚠</span>
+            <div><div class="ec-title">Candidate constraints preserved</div><div class="ec-body">Priya's 1 PM prayer block respected — new slot at 2:15 PM. Vikram's 3 PM hard stop verified — slot fits.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S8 — Before vs After
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s8" class="screen">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Schedule — Before vs After</h1><p>Disruption: VP Rahul Verma cancelled. Agent reshuffled 3 slots in 1 min 42 sec.</p></div>
+      <button class="btn btn-green" onclick="show('s9')">Proceed to Notifications →</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:12px;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;background:var(--red-l);border-radius:7px;text-align:center">BEFORE — Original Schedule</div>
+      <div></div>
+      <div style="font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.5px;padding:8px 14px;background:var(--grn-l);border-radius:7px;text-align:center">AFTER — Reshuffled Schedule</div>
+    </div>
+    <div class="compare-row"><div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Disrupted</div><strong>Priya Sharma · R2 Cross-fn</strong><br>Rahul Verma · 12:15 PM · Room A</div><div class="compare-arrow">→</div><div class="compare-cell compare-now"><div class="compare-label" style="color:var(--green)">Reassigned</div><strong>Priya Sharma · R2 Cross-fn</strong><br>Amit Saharan · 2:15 PM · Room A</div></div>
+    <div class="compare-row"><div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Disrupted</div><strong>Arjun Mehta · R2 Cross-fn</strong><br>Rahul Verma · 1:00 PM · Room A</div><div class="compare-arrow">→</div><div class="compare-cell compare-now"><div class="compare-label" style="color:var(--green)">Reassigned + Seniority note</div><strong>Arjun Mehta · R2 Cross-fn</strong><br>Siddharth Rao · 1:10 PM · Room B</div></div>
+    <div class="compare-row"><div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Disrupted</div><strong>Tanya Gupta · R1 Technical</strong><br>Rahul Verma · 2:00 PM · Room A</div><div class="compare-arrow">→</div><div class="compare-cell compare-now"><div class="compare-label" style="color:var(--green)">Reassigned</div><strong>Tanya Gupta · R1 Technical</strong><br>Amit Saharan · 3:00 PM · Room A</div></div>
+
+    <div class="divider"></div>
+    <div class="section-title">Unchanged slots (all others)</div>
+    <div class="compare-row" style="grid-template-columns:1fr"><div class="compare-cell compare-unchanged" style="font-size:12px"><strong>Kavya Nair, Sneha Iyer, Amir Khan, Rohan Das, Vikram Joshi</strong> — all 15 other slots unchanged. Constraints re-verified post-swap.</div></div>
+
+    <div class="ec-alert green" style="margin-top:16px">
+      <span class="ec-icon">✅</span>
+      <div><div class="ec-title">No cascading conflicts</div><div class="ec-body">All 3 swaps verified: room availability ✓ · candidate window ✓ · interviewer expertise ✓ · seniority flagged for Arjun's slot (Aditi approved) · Vikram's 3 PM hard stop still met ✓ · Priya's 1 PM prayer block not affected ✓</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S9 — Notification Drafts
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s9" class="screen">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><h1>Notification Drafts</h1><p>5 messages auto-drafted. Edit before sending. All parties must acknowledge before slots are confirmed.</p></div>
+      <button class="btn btn-green" onclick="sendAll()">Send All (5) →</button>
+    </div>
+    <div class="ec-alert amber" style="margin-bottom:16px">
+      <span class="ec-icon">⚠</span>
+      <div><div class="ec-title">Delivery failure handling</div><div class="ec-body">If a notification bounces or times out, the dashboard will show a red 'Not Notified' badge. Aditi can retry via SMS, call directly, or mark as manually notified. Slot is not confirmed until all parties acknowledged.</div></div>
+    </div>
+    <div class="grid-2" style="gap:14px">
+      <div class="notif-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="notif-to">Priya Sharma</div><div class="notif-type">Candidate · C1 · Backend Engineer</div></div><span class="badge badge-ok">Include ✓</span></div><div class="notif-body">Hi Priya, your Round 2 (Cross-functional) has a slight schedule change. You are now with Amit Saharan (Director of Engineering) at 2:15 PM in Room A. Your 1 PM break is fully preserved. Apologies for the short notice.</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="font-size:11px;padding:5px 10px">✏ Edit</button><span class="badge badge-ok" style="font-size:10px;padding:4px 8px">Delivered ✓</span></div></div>
+      <div class="notif-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="notif-to">Arjun Mehta</div><div class="notif-type">Candidate · C2 · Backend Engineer</div></div><span class="badge badge-ok">Include ✓</span></div><div class="notif-body">Hi Arjun, your Round 2 (Cross-functional) has moved. You are now with Siddharth Rao (Tech Lead) at 1:10 PM in Room B. All other rounds remain unchanged. Please bring any relevant work samples.</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="font-size:11px;padding:5px 10px">✏ Edit</button><span class="badge badge-ok" style="font-size:10px;padding:4px 8px">Delivered ✓</span></div></div>
+      <div class="notif-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="notif-to">Tanya Gupta</div><div class="notif-type">Candidate · C7 · Backend Engineer</div></div><span class="badge badge-ok">Include ✓</span></div><div class="notif-body">Hi Tanya, your Round 1 (Technical) has moved to 3:00 PM with Amit Saharan in Room A. Your earlier slots are unchanged. We apologise for any inconvenience.</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="font-size:11px;padding:5px 10px">✏ Edit</button><span class="badge badge-ok" style="font-size:10px;padding:4px 8px">Delivered ✓</span></div></div>
+      <div class="notif-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="notif-to">Amit Saharan</div><div class="notif-type">Interviewer · I10 · Director Engineering</div></div><span class="badge badge-ok">Include ✓</span></div><div class="notif-body">Hi Amit, you have been assigned 2 additional interview slots today. Priya Sharma (Backend Eng.) at 2:15 PM and Tanya Gupta (Backend Eng.) at 3:00 PM, both in Room A. Candidate profiles attached. Thank you for covering on short notice.</div><div style="display:flex;gap:8px"><button class="btn btn-outline" style="font-size:11px;padding:5px 10px">✏ Edit</button><span class="badge badge-warn" style="font-size:10px;padding:4px 8px">⚠ Pending ACK</span></div></div>
+      <div class="notif-card failed"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="notif-to">Siddharth Rao</div><div class="notif-type">Interviewer · I3 · Tech Lead</div></div><span class="badge badge-err">Not Notified ✗</span></div><div class="notif-body">Hi Siddharth, please cover Arjun Mehta's Round 2 at 1:10 PM in Room B. Arjun is a Backend Engineer — focus on system design. Brief attached.</div><div class="ec-alert red" style="margin-top:8px;padding:8px 12px"><span class="ec-icon">🔴</span><div><div class="ec-title">Delivery failed — email bounce at 11:48 AM</div><div class="ec-body">Action required: <button class="btn btn-danger" style="padding:4px 10px;font-size:11px;margin-left:6px" onclick="alert('SMS sent to Siddharth!')">Retry via SMS</button> <button class="btn btn-outline" style="padding:4px 10px;font-size:11px;margin-left:4px" onclick="alert('Marked as manually notified')">Mark as Notified</button></div></div></div></div>
+    </div>
+
+    <div id="send-confirm" style="display:none;margin-top:16px">
+      <div class="ec-alert green"><span class="ec-icon">✅</span><div><div class="ec-title">4 of 5 notifications sent successfully</div><div class="ec-body">Siddharth Rao still pending. Aditi's action required to confirm his slot. All other parties confirmed.</div></div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S10 — KPIs & Day Summary
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s10" class="screen">
+    <div class="page-header"><h1>Day Summary & KPIs</h1><p>InterviewSync performance · March 29, 2026 · 1 disruption handled autonomously</p></div>
+    <div class="grid-5" style="margin-bottom:20px">
+      <div class="kpi" style="border-top:3px solid var(--green)"><div class="kpi-label">Time to Replan</div><div class="kpi-val" style="color:var(--green)">1m 42s</div><div class="kpi-sub">From disruption → resolved</div></div>
+      <div class="kpi" style="border-top:3px solid var(--blue)"><div class="kpi-label">Completion Rate</div><div class="kpi-val" style="color:var(--blue)">100%</div><div class="kpi-sub">24/24 rounds completed</div></div>
+      <div class="kpi" style="border-top:3px solid var(--amber)"><div class="kpi-label">Disruptions</div><div class="kpi-val" style="color:var(--amber)">1</div><div class="kpi-sub">Auto-resolved by agent</div></div>
+      <div class="kpi" style="border-top:3px solid var(--purple)"><div class="kpi-label">Avg Candidate Wait</div><div class="kpi-val" style="color:var(--purple)">4.2 min</div><div class="kpi-sub">vs est. 28 min without agent</div></div>
+      <div class="kpi" style="border-top:3px solid var(--teal)"><div class="kpi-label">Interviewer Utilisation</div><div class="kpi-val" style="color:var(--teal)">87%</div><div class="kpi-sub">Of available time used</div></div>
+    </div>
+    <div class="grid-2" style="gap:16px">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Disruption Log</div>
+        <table>
+          <thead><tr><th>Time</th><th>Event</th><th>Resolved</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td style="font-family:var(--mono);font-size:11px">11:45 AM</td><td style="font-size:12px">VP Rahul cancelled all slots after 12 PM</td><td style="font-family:var(--mono);font-size:11px">11:47 AM</td><td style="font-size:11px">Agent auto-resolved</td><td><span class="badge badge-ok">Resolved</span></td></tr>
+            <tr><td style="font-family:var(--mono);font-size:11px">10:30 AM</td><td style="font-size:12px">Room B projector broken (moved to Room C)</td><td style="font-family:var(--mono);font-size:11px">10:32 AM</td><td style="font-size:11px">Room swap</td><td><span class="badge badge-ok">Resolved</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Candidate Completion</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Priya S.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Arjun M.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Sneha I.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Rohan D.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Kavya N.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Amir K.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Tanya G.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+          <div style="background:var(--grn-l);border-radius:8px;padding:10px;text-align:center"><div style="font-size:11px;font-weight:600;color:var(--dark)">Vikram J.</div><div style="font-size:18px;font-weight:800;color:var(--green)">3/3</div></div>
+        </div>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-title" style="margin-bottom:8px">Zero-Gap Score <span style="font-size:22px;font-weight:800;color:var(--green);margin-left:12px">95 / 100</span></div>
+        <div style="font-size:12px;color:var(--mid);line-height:1.7">Only 1 schedule change today, resolved in under 2 minutes with no candidate gaps exceeding 5 minutes. Agent performance: <strong style="color:var(--green)">Excellent</strong>.<br>Without InterviewSync: Aditi would have spent ~25–30 minutes on calls, risked double-booking, and candidates would have faced uncertain waits with no communication.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S11 — Late Candidate / Gap Compression + Kavya Back-to-Back
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s11" class="screen">
+    <div class="page-header"><h1>Edge Case · S11 — Candidate Constraints</h1><p>Two constraint-handling scenarios: Sneha arriving late with a hard stop, and Kavya's back-to-back preference vs room conflict.</p></div>
+    <div class="section-title">Gap 2 · Sneha Iyer — 30 Min Late, Gap Compression to 10 Min</div>
+    <div class="grid-2" style="gap:16px;margin-bottom:24px">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Original Plan (10:30 AM start)</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="flex:1;min-width:80px;background:var(--pur-l);border:1.5px solid var(--purple);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--purple)">R1 Domain</div><div style="color:var(--mid)">10:30–11:15</div></div>
+          <div style="width:40px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;padding:4px;font-size:9px;text-align:center;color:var(--mid);display:flex;align-items:center;justify-content:center">15m</div>
+          <div style="flex:1;min-width:80px;background:var(--pur-l);border:1.5px solid var(--purple);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--purple)">R2 Cross-fn</div><div style="color:var(--mid)">11:30–12:15</div></div>
+          <div style="width:40px;background:var(--bg);border:1px dashed var(--border);border-radius:4px;padding:4px;font-size:9px;text-align:center;color:var(--mid);display:flex;align-items:center;justify-content:center">15m</div>
+          <div style="flex:1;min-width:80px;background:var(--teal-l);border:1.5px solid var(--teal);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--teal)">R3 Culture</div><div style="color:var(--mid)">12:30–1:15</div></div>
+        </div>
+        <div class="ec-alert green"><span class="ec-icon">✅</span><div><div class="ec-title">Done by 1:15 PM — well before 3:30 PM hard stop</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Revised Plan (11:00 AM — 30 min late, gaps → 10 min)</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="flex:1;min-width:80px;background:var(--pur-l);border:1.5px solid var(--purple);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--purple)">R1 Domain</div><div style="color:var(--mid)">11:00–11:45</div></div>
+          <div style="width:36px;background:var(--grn-l);border:1px solid var(--green);border-radius:4px;padding:4px;font-size:9px;text-align:center;color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700">10m</div>
+          <div style="flex:1;min-width:80px;background:var(--pur-l);border:1.5px solid var(--purple);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--purple)">R2 Cross-fn</div><div style="color:var(--mid)">11:55–12:40</div></div>
+          <div style="width:36px;background:var(--grn-l);border:1px solid var(--green);border-radius:4px;padding:4px;font-size:9px;text-align:center;color:var(--green);display:flex;align-items:center;justify-content:center;font-weight:700">10m</div>
+          <div style="flex:1;min-width:80px;background:var(--teal-l);border:1.5px solid var(--teal);border-radius:6px;padding:8px;font-size:11px"><div style="font-weight:700;color:var(--teal)">R3 Culture</div><div style="color:var(--mid)">12:50–1:35</div></div>
+        </div>
+        <div class="ec-alert green"><span class="ec-icon">✅</span><div><div class="ec-title">Done 1:35 PM — fits before 3:30 PM hard stop</div></div></div>
+      </div>
+    </div>
+    <div class="ec-alert red" style="margin-bottom:20px">
+      <span class="ec-icon">🚨</span>
+      <div><div class="ec-title">Cannot Fit Edge Case — if Sneha arrives after 12:00 PM</div><div class="ec-body">3 rounds × 45 min + 2 × 10 min gaps = 3h 30min. Start 12:01 PM → End 3:31 PM → EXCEEDS hard stop.<br><strong>Agent action:</strong> Alert Aditi — "Cannot complete all 3 rounds before Sneha's 3:30 PM hard stop. Options: (1) Proceed with 2 rounds only and reschedule R3, (2) Reschedule entire interview to another date." Aditi must choose — agent never silently drops a round.</div></div>
+    </div>
+
+    <div class="section-title">Gap 3 · Kavya Nair — Back-to-Back Preference vs Room Conflict</div>
+    <div class="grid-2" style="gap:16px">
+      <div class="card">
+        <div class="card-title" style="color:var(--green);margin-bottom:8px">Scenario A — Preferred (rooms free)</div>
+        <div style="font-size:12px;color:var(--mid);margin-bottom:10px">All 3 rooms free in sequence. Agent honours preference with 10 min gaps.</div>
+        <div class="ec-alert green"><span class="ec-icon">✅</span><div><div class="ec-body">R1 10:00 AM Room B → 10m gap → R2 10:55 AM Room C → 10m gap → R3 11:05 AM Room C. Back-to-back honoured.</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="color:var(--amber);margin-bottom:8px">Scenario B — Room conflict forces small wait</div>
+        <div style="font-size:12px;color:var(--mid);margin-bottom:10px">Room C occupied at 10:55 AM. Agent introduces minimum necessary gap.</div>
+        <div class="ec-alert amber"><span class="ec-icon">⚠</span><div><div class="ec-body">R1 10:00 AM Room B → Room C occupied → R2 moved to 11:10 AM Room C (+25 min wait). Agent notifies Kavya: "Small 25-min wait between R1 and R2 due to room availability. Minimised where possible."</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S12 — Candidate No-Show State
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s12" class="screen">
+    <div style="background:var(--red-l);border-bottom:3px solid var(--red);padding:14px 0;margin:-24px -24px 20px;padding-left:24px;padding-right:24px;display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-weight:800;font-size:15px;color:var(--red)">🚫 No-Show Recorded</div><div style="font-size:12px;color:#991B1B;margin-top:2px">Vikram Joshi (Data Analyst · C8) did not arrive for Round 1 at 10:00 AM. Reported 10:20 AM.</div></div>
+      <span class="badge badge-err" style="font-size:13px;padding:6px 14px">No-Show Confirmed</span>
+    </div>
+    <div class="page-header"><h1>Edge Case · S12 — No-Show State</h1><p>What happens to the dashboard, interviewer calendars, and agent actions when a candidate doesn't appear.</p></div>
+    <div class="grid-2" style="gap:16px">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Vikram's Schedule — Updated State</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:12px;background:var(--red-l);border:2px solid var(--red);border-radius:8px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-weight:700;font-size:13px;color:var(--dark)">R1 Technical · 10:00 AM</div><div style="font-size:11px;color:var(--mid)">Deepak Menon · Room B</div></div><span class="badge badge-err">NO-SHOW</span></div>
+          <div style="padding:12px;background:var(--bg);border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;opacity:.6"><div><div style="font-weight:600;font-size:13px;color:var(--mid)">R2 Cross-fn · 11:15 AM</div><div style="font-size:11px;color:var(--light)">Neha Kulkarni · Room C</div></div><span class="badge" style="background:var(--bg);color:var(--mid);border:1px solid var(--border)">VACATED</span></div>
+          <div style="padding:12px;background:var(--bg);border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;opacity:.6"><div><div style="font-weight:600;font-size:13px;color:var(--mid)">R3 Culture · 12:30 PM</div><div style="font-size:11px;color:var(--light)">Pooja Reddy · Room C</div></div><span class="badge" style="background:var(--bg);color:var(--mid);border:1px solid var(--border)">VACATED</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Agent Actions — No-Show Protocol</div>
+        <div class="hier-item"><div class="hier-num" style="background:var(--red)">1</div><div><div class="hier-label">Mark slot as No-Show</div><div class="hier-sub">Vikram's R1 status set to No-Show at 10:20 AM. Timestamped for records.</div></div></div>
+        <div class="hier-item"><div class="hier-num" style="background:var(--amber)">2</div><div><div class="hier-label">Cascade cancellation</div><div class="hier-sub">R2 and R3 slots automatically vacated. Interviewers notified immediately.</div></div></div>
+        <div class="hier-item"><div class="hier-num" style="background:var(--green)">3</div><div><div class="hier-label">Free interviewer slots</div><div class="hier-sub">3 interviewer slots (Deepak, Neha, Pooja) released back to available pool for reuse.</div></div></div>
+        <div class="hier-item"><div class="hier-num" style="background:var(--blue)">4</div><div><div class="hier-label">Alert Aditi for follow-up</div><div class="hier-sub">"Vikram Joshi did not arrive. Recommend contacting candidate within 30 minutes."</div></div></div>
+      </div>
+    </div>
+    <div class="ec-alert blue" style="margin-top:16px">
+      <span class="ec-icon">🤔</span>
+      <div><div class="ec-title">Aditi's action required — 3 options</div><div class="ec-body"><strong>(1)</strong> Mark as disqualified — close this candidate's loop for this role. <strong>(2)</strong> Offer reschedule — agent finds next available slot across all interviewers. <strong>(3)</strong> No action — log as no-show for records only. Agent will not proceed without Aditi's explicit choice.</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S13 — Rahul Dead Zone + Siddharth 11AM Constraint
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s13" class="screen">
+    <div class="page-header"><h1>Edge Case · S13 — Interviewer Availability Gaps</h1><p>Two hard constraints that limit which candidates can be assigned to which interviewers at which times.</p></div>
+    <div class="section-title">Gap 7 · Rahul Verma — 12 PM–2 PM Dead Zone</div>
+    <div class="card" style="margin-bottom:20px">
+      <div style="font-size:12px;color:var(--mid);margin-bottom:12px">Rahul available 10AM–12PM only. Amit (backup) starts 2PM. 2-hour window with NO Director-level Engineering interviewer available.</div>
+      <div style="display:flex;height:44px;border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <div style="flex:2;background:var(--grn-l);border:1.5px solid var(--green);display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:600;color:var(--green)">Rahul available (10AM–12PM)</div>
+        <div style="flex:2;background:var(--red-l);border:2px solid var(--red);display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:700;color:var(--red)">⚡ DEAD ZONE (12PM–2PM)</div>
+        <div style="flex:3;background:var(--blue-l);border:1.5px solid var(--blue);display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:600;color:var(--blue)">Amit Saharan available (2PM–5PM)</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--mid);margin-bottom:8px">Agent Fallback Hierarchy for 12–2 PM Backend Slots:</div>
+      <div class="hier-item"><div class="hier-num">1</div><div><div class="hier-label">Siddharth Rao (Tech Lead, 11AM–4PM)</div><div class="hier-sub">Same dept, qualified. Use if available. Seniority warning shown to Aditi.</div></div></div>
+      <div class="hier-item"><div class="hier-num">2</div><div><div class="hier-label">Reschedule slot to after 2PM with Amit</div><div class="hier-sub">Move the affected candidate's slot to 2:05 PM+. Verify no other conflicts.</div></div></div>
+      <div class="hier-item" style="background:var(--red-l);border-color:var(--red-m)"><div class="hier-num" style="background:var(--red)">3</div><div><div class="hier-label">Alert Aditi — manual decision required</div><div class="hier-sub">If both options fail, agent surfaces the exact blocked slots and asks Aditi to decide.</div></div></div>
+    </div>
+
+    <div class="section-title">Gap 8 · Siddharth Rao — Cannot Take 10 AM Slots</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--mid);margin-bottom:12px">Siddharth available 11AM–4PM only. Agent must not assign him to any Backend Eng. or Data Analyst slot starting at 10:00 AM.</div>
+      <div style="display:flex;height:44px;border-radius:8px;overflow:hidden;margin-bottom:12px">
+        <div style="flex:1;background:var(--red-l);border:2px solid var(--red);display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:700;color:var(--red)">Unavailable (before 11AM)</div>
+        <div style="flex:5;background:var(--grn-l);border:1.5px solid var(--green);display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:600;color:var(--green)">Siddharth available (11AM–4PM)</div>
+      </div>
+      <div class="ec-alert amber">
+        <span class="ec-icon">⚠</span>
+        <div><div class="ec-title">10 AM slots that CANNOT be assigned to Siddharth:</div><div class="ec-body">C1 Priya Sharma (Backend, R1 10AM) · C2 Arjun Mehta (Backend, R1 10AM) · C5 Kavya Nair (Data, R1 10AM) · C6 Amir Khan (Data, R1 10AM). These are assigned to Rahul Verma / Meera Patel instead during schedule generation. This constraint is checked at generation time, not only at replanning time.</div></div>
+      </div>
+      <div class="ec-alert blue" style="margin-top:10px">
+        <span class="ec-icon">🔍</span>
+        <div><div class="ec-title">UI indicator on Interviewer Detail (I3)</div><div class="ec-body">Siddharth's availability window shows a yellow badge: "Cannot cover 10 AM slots". Any attempt to manually assign him before 11 AM shows an inline constraint violation warning — save is blocked.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S14 — Seniority Warning + Dual Unavailability
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s14" class="screen">
+    <div class="page-header"><h1>Edge Case · S14 — Backup Selection Edge Cases</h1><p>When the agent's backup is lower seniority, or when two interviewers are simultaneously unavailable.</p></div>
+    <div class="section-title">Gap 9 · Backup Has Lower Seniority — Aditi Must Confirm</div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="grid-2" style="gap:16px;margin-bottom:14px">
+        <div style="padding:14px;background:var(--red-l);border:1.5px solid var(--red-m);border-radius:8px"><div style="font-size:11px;font-weight:600;color:var(--mid);margin-bottom:4px">Original Interviewer</div><div style="font-size:16px;font-weight:800;color:var(--dark)">Rahul Verma</div><div style="font-size:12px;color:var(--mid)">VP Engineering</div><span class="badge badge-err" style="margin-top:6px;display:inline-block">CANCELLED</span></div>
+        <div style="padding:14px;background:var(--amb-l);border:1.5px solid var(--amb-m);border-radius:8px"><div style="font-size:11px;font-weight:600;color:var(--mid);margin-bottom:4px">Best Available Backup</div><div style="font-size:16px;font-weight:800;color:var(--dark)">Siddharth Rao</div><div style="font-size:12px;color:var(--mid)">Tech Lead (not Director+)</div><span class="badge badge-warn" style="margin-top:6px;display:inline-block">Lower Seniority ⚠</span></div>
+      </div>
+      <div class="ec-alert amber">
+        <span class="ec-icon">⚠</span>
+        <div><div class="ec-title">Seniority mismatch warning (shown to Aditi before confirming swap)</div><div class="ec-body">"The best available backup for Rahul Verma (VP Engineering) is Siddharth Rao (Tech Lead). This is a lower seniority level than the original interviewer. For senior-level candidate evaluation, this may affect assessment quality.<br><br><strong>Options:</strong> [Confirm Siddharth] [Find Another] [Escalate to Hiring Manager]"</div></div>
+      </div>
+      <div class="ec-alert green" style="margin-top:10px">
+        <span class="ec-icon">✅</span>
+        <div><div class="ec-title">When Amit Saharan (Director) IS available (2–5 PM)</div><div class="ec-body">No seniority warning — Director level matches VP level. Agent auto-confirms swap without prompting Aditi.</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Gap 10 · Two Interviewers Simultaneously Unavailable</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--mid);margin-bottom:12px">Scenario: VP Rahul cancels AND Siddharth Rao has an emergency simultaneously. No single interviewer covers the 1 PM Backend window.</div>
+      <table style="margin-bottom:14px">
+        <thead><tr><th>Interviewer</th><th>Status</th><th>Available When</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name">Rahul Verma (VP Eng.)</td><td><span class="badge badge-err">UNAVAILABLE</span></td><td style="font-size:12px">Cancelled from 12 PM</td></tr>
+          <tr><td class="td-name">Meera Patel (Sr. Eng.)</td><td><span class="badge badge-ok">Available</span></td><td style="font-size:12px">10AM–5PM</td></tr>
+          <tr><td class="td-name">Siddharth Rao (Tech Lead)</td><td><span class="badge badge-err">UNAVAILABLE</span></td><td style="font-size:12px">Emergency 1PM–3PM</td></tr>
+          <tr><td class="td-name">Amit Saharan (Director)</td><td><span class="badge badge-warn">Limited</span></td><td style="font-size:12px">2PM–5PM only</td></tr>
+        </tbody>
+      </table>
+      <div class="ec-alert red" style="margin-bottom:12px">
+        <span class="ec-icon">🚨</span>
+        <div><div class="ec-title">No Director-level Eng. covers 1PM slot. Agent escalates to Aditi.</div></div>
+      </div>
+      <div class="hier-item"><div class="hier-num">1</div><div><div class="hier-label">Check all Eng. interviewers for 1PM slot</div><div class="hier-sub">Meera Patel free — but Sr. Engineer, not Director+. Seniority warning required.</div></div></div>
+      <div class="hier-item"><div class="hier-num">2</div><div><div class="hier-label">Offer Aditi 2 options</div><div class="hier-sub">(A) Meera covers with seniority note and Aditi's approval. (B) Move slot to 2:05 PM with Amit.</div></div></div>
+      <div class="hier-item" style="background:var(--grn-l);border-color:var(--grn-m)"><div class="hier-num" style="background:var(--green)">3</div><div><div class="hier-label">If Aditi selects (B): reschedule confirmed</div><div class="hier-sub">Slot moved to 2:05 PM with Amit Saharan. Room A free. Notifications drafted for candidate and Amit.</div></div></div>
+      <div class="ec-alert blue" style="margin-top:12px">
+        <span class="ec-icon">📋</span>
+        <div><div class="ec-title">Simultaneous disruption queue rule</div><div class="ec-body">If two disruptions are reported within the same minute, the agent queues them and resolves sequentially. Priority: (1) Interviewer cancellation, (2) Room conflicts, (3) Candidate delays. After resolving disruption 1, agent re-checks all constraints before applying disruption 2 — the first swap may have freed or blocked resources affecting the second resolution.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S15 — Room B Broken + C Occupied → Stagger
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s15" class="screen">
+    <div style="background:var(--red-l);border-bottom:3px solid var(--red);padding:12px 0;margin:-24px -24px 20px;padding-left:24px;padding-right:24px"><div style="font-weight:800;font-size:14px;color:var(--red)">🏢 Room Conflict Alert</div><div style="font-size:12px;color:#991B1B;margin-top:2px">Room B projector broken at 10:30 AM. Room C occupied. Cannot batch-move all Room B slots simultaneously.</div></div>
+    <div class="page-header"><h1>Edge Case · S15 — Room Stagger Resolution</h1><p>Gap 11: Both rooms occupied simultaneously. Agent must stagger slot-by-slot rather than doing a bulk room swap.</p></div>
+    <div class="grid-3" style="gap:12px;margin-bottom:20px">
+      <div class="room-card">
+        <div class="room-header" style="background:var(--pur-l);border-bottom:1px solid var(--pur-m)">Room A — Boardroom <span class="badge badge-ok">Active</span></div>
+        <div class="room-slots"><div class="room-slot" style="background:var(--grn-l)"><div style="font-weight:600;font-size:12px">Priya R1 Technical</div><div style="font-size:11px;color:var(--mid)">10:00–10:45 · Rahul V.</div></div></div>
+      </div>
+      <div class="room-card">
+        <div class="room-header" style="background:var(--red-l);border-bottom:1px solid var(--red-m)">Room B — Conf Room 2 <span class="badge badge-err">BROKEN</span></div>
+        <div class="room-slots"><div class="room-slot" style="background:var(--red-l);border:1px solid var(--red-m)"><div style="font-weight:600;font-size:12px;color:var(--red)">Projector failure</div><div style="font-size:11px;color:var(--red)">Reported 10:30 AM</div></div></div>
+      </div>
+      <div class="room-card">
+        <div class="room-header" style="background:var(--amb-l);border-bottom:1px solid var(--amb-m)">Room C — Conf Room 3 <span class="badge badge-warn">Occupied</span></div>
+        <div class="room-slots"><div class="room-slot" style="background:var(--amb-l)"><div style="font-weight:600;font-size:12px">Sneha R1 Domain</div><div style="font-size:11px;color:var(--mid)">10:30–11:15 · Ananya J.</div></div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Agent Stagger Plan — Slot by Slot</div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="compare-row">
+        <div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Was (Room B)</div>Kavya Nair R1 Technical · 10:00 AM · Room B</div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-cell compare-now"><div class="compare-label" style="color:var(--amber)">Staggered +80 min</div>Kavya Nair R1 Technical · 11:20 AM · Room C<br><span style="font-size:10px;color:var(--mid)">First free slot after Sneha ends 11:15 AM</span></div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Was (Room B)</div>Amir Khan R1 Technical · 11:00 AM · Room B</div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-cell compare-now"><div class="compare-label" style="color:var(--amber)">Staggered +70 min</div>Amir Khan R1 Technical · 12:10 PM · Room C<br><span style="font-size:10px;color:var(--mid)">After Kavya ends 12:05 PM</span></div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-cell compare-was"><div class="compare-label" style="color:var(--red)">Was (Room B)</div>Rohan Das R1 Domain · 11:00 AM · Room B (Design)</div>
+        <div class="compare-arrow">→</div>
+        <div class="compare-cell compare-now"><div class="compare-label" style="color:var(--green)">Immediate move</div>Rohan Das R1 Domain · 11:00 AM · Room A<br><span style="font-size:10px;color:var(--mid)">Room A free 11AM–12PM — no stagger needed</span></div>
+      </div>
+    </div>
+    <div class="ec-alert red">
+      <span class="ec-icon">🔒</span>
+      <div><div class="ec-title">Hard rule: Agent never double-books a room</div><div class="ec-body">Each stagger checks the FULL room timeline before confirming the move — not just the "is it free right now" check. Agent also verifies: (1) Does seniority match room assignment? Room A = senior/VP only. (2) Does interviewer need specific equipment? Flag if tech round moves to a room without projector. (3) Update room grid atomically to prevent concurrent double-booking.</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       S16 — Notification Failure + Manual Edit Validation
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="s16" class="screen">
+    <div class="page-header"><h1>Edge Case · S16 — System Safeguards</h1><p>Gap 12: Notification delivery failures. Gap 13: Aditi overrides the agent schedule manually — constraint validation blocks invalid edits.</p></div>
+    <div class="section-title">Gap 12 · Notification Delivery Failure — "Not Notified" Flags</div>
+    <div class="card" style="margin-bottom:20px">
+      <div style="font-size:12px;color:var(--mid);margin-bottom:12px">After agent sends notifications, delivery status is tracked per recipient. Failed deliveries require manual follow-up by Aditi — slot is not confirmed until all parties are acknowledged.</div>
+      <table style="margin-bottom:14px">
+        <thead><tr><th>Recipient</th><th>Channel</th><th>Sent At</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td class="td-name">Priya Sharma</td><td>Email</td><td style="font-family:var(--mono);font-size:11px">11:47 AM</td><td><span class="badge badge-ok">Delivered ✓</span></td><td style="font-size:11px;color:var(--mid)">—</td></tr>
+          <tr style="background:var(--red-l)"><td class="td-name" style="color:var(--red)">Arjun Mehta</td><td>Email</td><td style="font-family:var(--mono);font-size:11px">11:47 AM</td><td><span class="badge badge-err">Not Notified ✗</span></td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="alert('Retry SMS sent to Arjun!')">Retry SMS</button></td></tr>
+          <tr><td class="td-name">Tanya Gupta</td><td>Email</td><td style="font-family:var(--mono);font-size:11px">11:47 AM</td><td><span class="badge badge-ok">Delivered ✓</span></td><td style="font-size:11px;color:var(--mid)">—</td></tr>
+          <tr><td class="td-name">Amit Saharan</td><td>Slack</td><td style="font-family:var(--mono);font-size:11px">11:47 AM</td><td><span class="badge badge-warn">Pending ACK</span></td><td style="font-size:11px;color:var(--mid)">Awaiting reply</td></tr>
+          <tr style="background:var(--red-l)"><td class="td-name" style="color:var(--red)">Siddharth Rao</td><td>Email</td><td style="font-family:var(--mono);font-size:11px">11:48 AM</td><td><span class="badge badge-err">Not Notified ✗</span></td><td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="alert('Marked as manually notified!')">Mark Notified</button></td></tr>
+        </tbody>
+      </table>
+      <div class="ec-alert amber">
+        <span class="ec-icon">⚡</span>
+        <div><div class="ec-title">Dashboard badge when failures exist</div><div class="ec-body">Top bar shows "2 Not Notified" badge in red. Aditi must resolve each one before the day-end summary shows 100% completion. Options per failed notif: Retry via SMS, Call directly, or Mark as manually notified.</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Gap 13 · Aditi Manually Edits Agent Schedule — Validation Layer</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--mid);margin-bottom:14px">When Aditi overrides the agent-generated schedule, the system validates all constraints before saving. Invalid edits are blocked with a specific explanation — not silently saved.</div>
+      <div class="ec-alert blue" style="margin-bottom:14px">
+        <span class="ec-icon">✏</span>
+        <div><div class="ec-title">Aditi's manual edit (scenario)</div><div class="ec-body">She moves Arjun Mehta's Round 2 from 1:10 PM (Siddharth, Room B) → to 1:00 PM (Rahul Verma, Room A). Rahul has already been marked as cancelled after 12 PM.</div></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Validation Results (run before save):</div>
+      <div class="val-row fail"><span class="val-icon">✗</span><div class="val-text"><div>Is Rahul Verma available at 1:00 PM?</div><div class="val-result">FAIL — Rahul cancelled all slots after 12:00 PM</div></div></div>
+      <div class="val-row pass"><span class="val-icon">✓</span><div class="val-text"><div>Is Room A free at 1:00 PM?</div><div class="val-result">PASS — Room A has no bookings at 1 PM</div></div></div>
+      <div class="val-row pass"><span class="val-icon">✓</span><div class="val-text"><div>Does 1:00 PM fit Arjun's availability window?</div><div class="val-result">PASS — Arjun available until 5 PM</div></div></div>
+      <div class="val-row pass"><span class="val-icon">✓</span><div class="val-text"><div>Does Rahul's expertise match Backend Eng.?</div><div class="val-result">PASS — VP Engineering qualifies</div></div></div>
+      <div class="val-row fail"><span class="val-icon">✗</span><div class="val-text"><div>Is this interviewer active today?</div><div class="val-result">FAIL — Rahul is cancelled (not available post 12PM)</div></div></div>
+      <div style="background:var(--red-l);border:2px solid var(--red);border-radius:8px;padding:12px 16px;margin-top:12px">
+        <div style="font-weight:700;font-size:13px;color:var(--red)">🔒 Save BLOCKED — 2 constraint violations found</div>
+        <div style="font-size:12px;color:#991B1B;margin-top:6px">"Rahul Verma is unavailable at 1:00 PM (cancelled). Suggested fix: use Amit Saharan (available 2–5 PM) or Siddharth Rao (available 11AM–4PM). Select a valid interviewer to proceed."</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-outline" style="font-size:12px" onclick="alert('Assigned Siddharth Rao instead. Edit saved.')">Use Siddharth Rao</button>
+          <button class="btn btn-outline" style="font-size:12px" onclick="alert('Moved to 2:05 PM with Amit Saharan. Edit saved.')">Move to 2PM with Amit</button>
+          <button class="btn btn-danger" style="font-size:12px" onclick="alert('Edit cancelled. Original schedule restored.')">Cancel Edit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     Disruption Modal Overlay
+═══════════════════════════════════════════════════════════════ -->
+<div id="disruption-overlay" class="overlay" onclick="closeDisruptionOnBg(event)">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeDisruption()">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div style="width:36px;height:36px;background:var(--red-l);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px">⚠</div>
+      <div class="modal-title">Report a Disruption</div>
+    </div>
+    <div class="modal-sub">The agent will automatically replan all affected slots. You approve before anything is sent.</div>
+    <div class="form-group">
+      <label class="form-label">Disruption Type</label>
+      <div class="radio-group" id="modal-disruption-type">
+        <div class="radio-item selected" onclick="selectModalDisruption(this)"><div class="radio-dot"></div><div class="radio-text">🧑‍💼 Interviewer Cancelled</div></div>
+        <div class="radio-item" onclick="selectModalDisruption(this)"><div class="radio-dot"></div><div class="radio-text">🏢 Room Unavailable / Equipment Broken</div></div>
+        <div class="radio-item" onclick="selectModalDisruption(this)"><div class="radio-dot"></div><div class="radio-text">⏱ Candidate Running Late</div></div>
+        <div class="radio-item" onclick="selectModalDisruption(this)"><div class="radio-dot"></div><div class="radio-text">🚫 Candidate No-Show</div></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Who is affected?</label>
+      <select class="form-input">
+        <option>Rahul Verma — VP Engineering (all slots after 12 PM)</option>
+        <option>Room B — Projector broken</option>
+        <option>Sneha Iyer — Running 30 min late</option>
+        <option>Vikram Joshi — No-show</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-input" rows="2" placeholder="e.g. Emergency board call. Available again tomorrow."></textarea>
+    </div>
+    <div class="ec-alert red" style="margin-bottom:16px">
+      <span class="ec-icon">🛡</span>
+      <div><div class="ec-title">Edge case protection</div><div class="ec-body">If no backup exists, agent alerts Aditi with options — never silently fails.</div></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeDisruption()">Cancel</button>
+      <button class="btn btn-danger" style="flex:2" onclick="handleModalReplan()">🤖 Let Agent Replan →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────
+const titles = {
+  s1:'S1 · Setup & Data Ingestion', s2:'S2 · Master Dashboard',
+  s6:'S6 · Report Disruption', s7:'S7 · Agent Reasoning & Live Replan',
+  s8:'S8 · Before vs After', s9:'S9 · Notification Drafts',
+  s10:'S10 · KPIs & Day Summary', s11:'S11 · Candidate Constraints',
+  s12:'S12 · No-Show State', s13:'S13 · Interviewer Availability Gaps',
+  s14:'S14 · Backup Selection Edge Cases', s15:'S15 · Room Stagger',
+  s16:'S16 · System Safeguards'
+};
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
+  });
+  document.getElementById('topbar-title').textContent = titles[id] || id;
+  document.getElementById('content').scrollTop = 0;
+  if (id === 's7') initAgentAnimation();
+  if (id === 's2') buildTimeline();
+}
+
+// ── Timeline builder ──────────────────────────────────────────────
+function buildTimeline() {
+  const container = document.getElementById('timeline-rows');
+  if (container.children.length > 0) return; // already built
+
+  // 7 hours = 10AM to 5PM, each hour = 1 unit
+  // pct(h,m) = percentage offset in 7-hour span
+  const pct = (h, m) => ((h - 10) * 60 + m) / 420 * 100;
+  const dur = (mins) => mins / 420 * 100;
+
+  const candidates = [
+    { name:'Priya S.', role:'Backend Eng.', roleClass:'be',
+      slots:[
+        { label:'R1 Technical', iv:'Rahul V.', room:'Room A', start:[10,0], mins:45, cls:'slot-be' },
+        { label:'R2 Cross-fn',  iv:'Siddharth', room:'Room B', start:[11,0], mins:45, cls:'slot-be' },
+        { label:'R3 Culture',   iv:'Pooja R.', room:'Room C', start:[12,0], mins:45, cls:'slot-teal' },
+      ],
+      hardStop: null, prayerAt: [13,0] },
+    { name:'Arjun M.', role:'Backend Eng.', roleClass:'be',
+      slots:[
+        { label:'R1 Technical', iv:'Meera P.', room:'Room A', start:[10,0], mins:45, cls:'slot-be' },
+        { label:'R2 Cross-fn',  iv:'Siddharth', room:'Room B', start:[11,15], mins:45, cls:'slot-be' },
+        { label:'R3 Culture',   iv:'Lisa T.', room:'Room C', start:[12,30], mins:45, cls:'slot-teal' },
+      ]},
+    { name:'Sneha I.', role:'Product Design', roleClass:'pd',
+      slots:[
+        { label:'R1 Domain',   iv:'Ananya J.', room:'Room C', start:[10,30], mins:45, cls:'slot-pd' },
+        { label:'R2 Cross-fn', iv:'Neha K.', room:'Room B', start:[11,45], mins:45, cls:'slot-pd' },
+        { label:'R3 Culture',  iv:'Pooja R.', room:'Room C', start:[13,0], mins:45, cls:'slot-teal' },
+      ],
+      hardStop:[15,30] },
+    { name:'Rohan D.', role:'Product Design', roleClass:'pd',
+      slots:[
+        { label:'R1 Domain',   iv:'Karan S.', room:'Room C', start:[11,0], mins:45, cls:'slot-pd' },
+        { label:'R2 Cross-fn', iv:'Neha K.', room:'Room B', start:[12,15], mins:45, cls:'slot-pd' },
+        { label:'R3 Culture',  iv:'Lisa T.', room:'Room C', start:[13,30], mins:45, cls:'slot-teal' },
+      ]},
+    { name:'Kavya N.', role:'Data Analyst', roleClass:'da',
+      slots:[
+        { label:'R1 Technical', iv:'Deepak M.', room:'Room B', start:[10,0], mins:45, cls:'slot-da' },
+        { label:'R2 Cross-fn',  iv:'Neha K.', room:'Room C', start:[11,0], mins:45, cls:'slot-da' },
+        { label:'R3 Culture',   iv:'Pooja R.', room:'Room C', start:[12,0], mins:45, cls:'slot-teal' },
+      ]},
+    { name:'Amir K.', role:'Data Analyst', roleClass:'da',
+      slots:[
+        { label:'R1 Technical', iv:'Ritu A.', room:'Room B', start:[10,0], mins:45, cls:'slot-da' },
+        { label:'R2 Cross-fn',  iv:'Siddharth', room:'Room B', start:[11,15], mins:45, cls:'slot-da' },
+        { label:'R3 Culture',   iv:'Lisa T.', room:'Room C', start:[12,30], mins:45, cls:'slot-teal' },
+      ]},
+    { name:'Tanya G.', role:'Backend Eng.', roleClass:'be',
+      slots:[
+        { label:'R1 Technical', iv:'Meera P.', room:'Room B', start:[11,0], mins:45, cls:'slot-be' },
+        { label:'R2 Cross-fn',  iv:'Siddharth', room:'Room B', start:[12,15], mins:45, cls:'slot-be' },
+        { label:'R3 Culture',   iv:'Pooja R.', room:'Room C', start:[13,30], mins:45, cls:'slot-teal' },
+      ]},
+    { name:'Vikram J.', role:'Data Analyst', roleClass:'da',
+      slots:[
+        { label:'R1 Technical', iv:'Deepak M.', room:'Room B', start:[10,0], mins:45, cls:'slot-da' },
+        { label:'R2 Cross-fn',  iv:'Neha K.', room:'Room C', start:[11,15], mins:45, cls:'slot-da' },
+        { label:'R3 Culture',   iv:'Pooja R.', room:'Room C', start:[12,30], mins:45, cls:'slot-teal' },
+      ],
+      hardStop:[15,0] },
+  ];
+
+  const slotColors = {
+    'slot-be':  {bg:'#EFF6FF',border:'#3B82F6',text:'#1E3A8A'},
+    'slot-pd':  {bg:'#F5F3FF',border:'#7C3AED',text:'#4C1D95'},
+    'slot-da':  {bg:'#F0FDFA',border:'#0D9488',text:'#134E4A'},
+    'slot-teal':{bg:'#F0FDF4',border:'#16A34A',text:'#14532D'},
+  };
+
+  candidates.forEach(c => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;min-height:68px;border-bottom:1px solid #F1F5F9;padding:5px 0;';
+
+    // Name cell
+    const nameCell = document.createElement('div');
+    nameCell.style.cssText = 'width:130px;flex-shrink:0;padding:4px 8px;';
+    const roleColors = {be:['#EFF6FF','#2563EB'],pd:['#F5F3FF','#7C3AED'],da:['#F0FDFA','#0D9488']};
+    const rc = roleColors[c.roleClass];
+    nameCell.innerHTML = `<div style="font-size:12px;font-weight:700;color:#0F172A">${c.name}</div><span style="font-size:9px;font-weight:600;background:${rc[0]};color:${rc[1]};padding:1px 5px;border-radius:3px">${c.role}</span>`;
+    row.appendChild(nameCell);
+
+    // Slots container
+    const slotsDiv = document.createElement('div');
+    slotsDiv.style.cssText = 'flex:1;position:relative;height:60px;';
+
+    // Prayer block for Priya
+    if (c.prayerAt) {
+      const pb = document.createElement('div');
+      const left = pct(c.prayerAt[0], c.prayerAt[1]);
+      const width = dur(30);
+      pb.style.cssText = `position:absolute;left:${left}%;width:${width}%;top:2px;height:56px;background:repeating-linear-gradient(45deg,rgba(124,58,237,.06),rgba(124,58,237,.06) 3px,transparent 3px,transparent 7px);border:1.5px dashed #7C3AED;border-radius:5px;z-index:3;display:flex;align-items:center;justify-content:center;`;
+      pb.innerHTML = `<span style="font-size:9px;font-weight:700;color:#7C3AED;writing-mode:vertical-rl">Prayer</span>`;
+      pb.title = "Prayer break 1:00–1:30 PM (hard block — no scheduling)";
+      slotsDiv.appendChild(pb);
+    }
+
+    // Hard stop line
+    if (c.hardStop) {
+      const hs = document.createElement('div');
+      const left = pct(c.hardStop[0], c.hardStop[1]);
+      const color = c.hardStop[0] === 15 && c.hardStop[1] === 0 ? '#DC2626' : '#D97706';
+      hs.style.cssText = `position:absolute;left:${left}%;top:0;width:2.5px;height:100%;background:${color};z-index:5;border-radius:1px;`;
+      hs.title = `Hard stop ${c.hardStop[0] === 15 ? '3:00 PM' : '3:30 PM'}`;
+      const hsLabel = document.createElement('div');
+      hsLabel.style.cssText = `position:absolute;left:${left+0.5}%;top:2px;font-size:8px;font-weight:700;color:${color};white-space:nowrap;z-index:6;`;
+      hsLabel.textContent = c.hardStop[1] === 0 ? '3PM ✈' : '3:30 ✈';
+      slotsDiv.appendChild(hs);
+      slotsDiv.appendChild(hsLabel);
+    }
+
+    // Slots
+    c.slots.forEach(s => {
+      const slot = document.createElement('div');
+      const left = pct(s.start[0], s.start[1]);
+      const width = dur(s.mins);
+      const col = slotColors[s.cls];
+      slot.style.cssText = `position:absolute;left:calc(${left}% + 2px);width:calc(${width}% - 4px);top:4px;height:52px;background:${col.bg};border:1.5px solid ${col.border};border-radius:6px;padding:4px 6px;cursor:pointer;transition:all .15s;overflow:hidden;`;
+      slot.innerHTML = `<div style="font-size:10px;font-weight:700;color:${col.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.label}</div><div style="font-size:9px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.iv}</div><div style="font-size:8px;color:#94A3B8">${s.room}</div>`;
+      slot.addEventListener('mouseenter', () => { slot.style.transform = 'translateY(-2px)'; slot.style.boxShadow = '0 4px 12px rgba(0,0,0,.12)'; slot.style.zIndex = '10'; });
+      slot.addEventListener('mouseleave', () => { slot.style.transform = ''; slot.style.boxShadow = ''; slot.style.zIndex = ''; });
+      slot.addEventListener('click', () => alert(`${c.name} · ${s.label}\nTime: ${s.start[0]}:${String(s.start[1]).padStart(2,'0')} – ${s.mins} min\nInterviewer: ${s.iv}\nRoom: ${s.room}`));
+      slotsDiv.appendChild(slot);
+    });
+
+    row.appendChild(slotsDiv);
+    container.appendChild(row);
+  });
+}
+
+// ── Agent Animation ───────────────────────────────────────────────
+let agentRunning = false;
+let agentInterval = null;
+let agentSeconds = 0;
+
+const stepData = [
+  { label:'Disruption Detected', detail:'VP Rahul Verma · all slots after 12:00 PM cancelled at 11:45 AM', result:'→ 3 affected slots identified', delay:400 },
+  { label:'Identify Affected Candidates', detail:'Priya Sharma (2PM) · Arjun Mehta (1PM) · Tanya Gupta (2PM)', result:'→ C1, C2, C7 impacted', delay:900 },
+  { label:'Constraint Check for Backup', detail:'Backup must match: Engineering dept · seniority ≥ Tech Lead · available post-12PM', result:'→ Filter applied to 12 interviewers', delay:1600 },
+  { label:'Backup Interviewer Match', detail:'Amit Saharan (Director Eng. · 2–5PM) ranked #1. Siddharth Rao (Tech Lead · 11AM–4PM) ranked #2 for 1PM slot.', result:'→ Amit: Priya (2:15PM), Tanya (3PM). Siddharth: Arjun (1:10PM)', delay:2400 },
+  { label:'Seniority Validation', detail:'Amit (Director) = matches VP level → no warning. Siddharth (Tech Lead) < VP → seniority flag raised for Arjun\'s slot.', result:'→ Warning queued for Aditi approval', delay:3200 },
+  { label:'Slot Swap Execution', detail:'Reassigning candidate slots. Preserving Priya\'s 1PM prayer block. Checking Vikram 3PM hard stop.', result:'→ 3 swaps applied. All candidate constraints preserved.', delay:4000 },
+  { label:'Room Conflict Check', detail:'Room A free at 2:15PM ✓ · Room B free at 1:10PM ✓ · Room A free at 3PM ✓', result:'→ Zero room conflicts', delay:4800 },
+  { label:'Draft Notifications', detail:'Generating personalised messages for Priya, Arjun, Tanya, Amit, and Siddharth.', result:'→ 5 notification drafts ready for Aditi review', delay:5600 },
+];
+
+const previewData = [
+  { cand:'Priya Sharma', round:'R2 Cross-fn', was:'Rahul Verma · 12:15 PM · Room A', now:'Amit Saharan · 2:15 PM · Room A', changed:true },
+  { cand:'Arjun Mehta',  round:'R2 Cross-fn', was:'Rahul Verma · 1:00 PM · Room A',  now:'Siddharth Rao · 1:10 PM · Room B ⚠ seniority note', changed:true },
+  { cand:'Tanya Gupta',  round:'R1 Technical', was:'Rahul Verma · 2:00 PM · Room A',  now:'Amit Saharan · 3:00 PM · Room A', changed:true },
+];
+
+function initAgentAnimation() {
+  if (agentRunning) return;
+  agentRunning = true;
+  agentSeconds = 0;
+
+  // Reset steps
+  for (let i = 1; i <= 8; i++) {
+    const step = document.getElementById('step' + i);
+    step.classList.remove('visible', 'done', 'active', 'blocked');
+    const data = stepData[i - 1];
+    step.querySelector('.step-label').textContent = data.label;
+    step.querySelector('.step-detail').textContent = data.detail;
+    step.querySelector('.step-result').textContent = '';
+    step.querySelector('.step-status').textContent = '';
+    step.querySelector('.step-status').style.cssText = '';
+  }
+  document.getElementById('replan-complete').style.display = 'none';
+  document.getElementById('replan-preview').innerHTML = '<div style="text-align:center;padding:40px;color:var(--light);font-size:13px">⏳ Agent working...</div>';
+  document.getElementById('edge-case-panel').style.display = 'none';
+  document.getElementById('agent-status-pill').textContent = 'Running...';
+  document.getElementById('agent-status-pill').className = 'status-pill pill-amber';
+
+  // Timer
+  agentInterval = setInterval(() => {
+    agentSeconds++;
+    const m = Math.floor(agentSeconds / 60);
+    const s = agentSeconds % 60;
+    document.getElementById('agent-timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+
+  // Animate steps
+  stepData.forEach((data, i) => {
+    setTimeout(() => {
+      const step = document.getElementById('step' + (i + 1));
+      step.classList.add('visible', 'active');
+      if (i > 0) {
+        const prev = document.getElementById('step' + i);
+        prev.classList.remove('active');
+        prev.classList.add('done');
+        prev.querySelector('.step-result').textContent = stepData[i-1].result;
+        prev.querySelector('.step-status').textContent = '✓';
+        prev.querySelector('.step-status').style.cssText = 'background:var(--grn-l);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;';
+      }
+    }, data.delay);
+  });
+
+  // Complete
+  setTimeout(() => {
+    const last = document.getElementById('step8');
+    last.classList.remove('active');
+    last.classList.add('done');
+    last.querySelector('.step-result').textContent = stepData[7].result;
+    last.querySelector('.step-status').textContent = '✓';
+    last.querySelector('.step-status').style.cssText = 'background:var(--grn-l);color:var(--green);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;';
+
+    clearInterval(agentInterval);
+    document.getElementById('agent-status-pill').textContent = '✓ Complete';
+    document.getElementById('agent-status-pill').className = 'status-pill pill-green';
+
+    // Show preview
+    const preview = document.getElementById('replan-preview');
+    preview.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Affected Assignments</div>';
+    previewData.forEach(p => {
+      const card = document.createElement('div');
+      card.style.cssText = 'padding:12px 14px;border-radius:8px;border-left:4px solid var(--amber);background:var(--amb-l);margin-bottom:8px;border:1.5px solid var(--amb-m);border-left-width:4px;';
+      card.innerHTML = `<div style="font-weight:700;font-size:12px;color:var(--dark)">${p.cand} · ${p.round}</div><div style="font-size:11px;color:var(--mid);margin-top:4px;text-decoration:line-through">Was: ${p.was}</div><div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px">Now: ${p.now}</div>`;
+      preview.appendChild(card);
+    });
+
+    document.getElementById('replan-complete').style.display = 'block';
+    document.getElementById('edge-case-panel').style.display = 'block';
+    agentRunning = false;
+  }, 6400);
+}
+
+// ── Disruption modal ──────────────────────────────────────────────
+function openDisruption() {
+  document.getElementById('disruption-overlay').classList.add('open');
+}
+function closeDisruption() {
+  document.getElementById('disruption-overlay').classList.remove('open');
+}
+function closeDisruptionOnBg(e) {
+  if (e.target === document.getElementById('disruption-overlay')) closeDisruption();
+}
+function handleModalReplan() {
+  closeDisruption();
+  agentRunning = false;
+  show('s7');
+}
+
+// ── Radio selectors ───────────────────────────────────────────────
+function selectDisruption(el) {
+  el.closest('.radio-group').querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function selectModalDisruption(el) {
+  el.closest('.radio-group').querySelectorAll('.radio-item').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── S6 trigger replan ─────────────────────────────────────────────
+function triggerReplan() {
+  agentRunning = false;
+  show('s7');
+}
+
+// ── S9 send all ───────────────────────────────────────────────────
+function sendAll() {
+  document.getElementById('send-confirm').style.display = 'block';
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+buildTimeline();
+</script>
+</body>
+</html>
